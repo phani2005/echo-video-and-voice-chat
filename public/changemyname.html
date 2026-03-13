@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Change My Name</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Change My Name</h2>
+
+        <form id="changeForm">
+            <input type="email" id="email" readonly>
+            <input type="text" id="newname" placeholder="New Name" required>
+            <button type="submit">Save</button>
+        </form>
+    </div>
+
+    <script>
+
+        const loggedEmail = localStorage.getItem("loggedUser")
+        document.getElementById("email").value = loggedEmail
+
+        document.getElementById("changeForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+
+            const newName = document.getElementById("newname").value
+
+            const res = await fetch("/change-my-name", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: loggedEmail,
+                    newName: newName
+                })
+            })
+
+            const data = await res.json()
+
+            if (data.success) {
+                alert("Name updated successfully")
+                window.location.href = "/main.html"
+            } else {
+                alert("Something went wrong")
+            }
+        })
+
+    </script>
+
+</body>
+
+</html>

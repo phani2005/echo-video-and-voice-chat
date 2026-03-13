@@ -1,0 +1,244 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+}
+
+/* Main container */
+.container{
+    width:100%;
+    max-width:420px;
+    height:95vh;
+    background:white;
+    border-radius:12px;
+    display:flex;
+    flex-direction:column;
+    overflow:visible;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+/* Emoji container like WhatsApp keyboard */
+.emoji-container {
+    position: absolute;
+    bottom: 70px; /* just above input box */
+    left: 0;
+    width: 100%;
+    display: none;
+    background: white;
+    border-top: 1px solid #ddd;
+    z-index: 1000;
+    max-height: 300px;
+}
+
+/* Make emoji picker full width */
+emoji-picker {
+    width: 100%;
+    height: 300px;
+}
+.menu-wrapper {
+    position: relative;
+}
+.top-bar {
+    position: relative;
+    z-index: 10;
+}
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 35px;
+    background: white;
+    border: 1px solid #ddd;
+    display: none;
+    width: 150px;
+    z-index: 999;
+}
+
+.dropdown-menu div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.dropdown-menu div:hover {
+    display: visible;
+    color: black;
+    background: #f0f0f0;
+}
+.dropdown-menu {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.dropdown-menu div{
+    color: black;
+}
+#selectOption{
+    color:black;
+}
+/* Chat input must be relative */
+.container {
+    position: relative;
+}
+/* Top bar */
+.top-bar{
+    background:#075E54;
+    color:white;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.left-side{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.left-side i{
+    cursor:pointer;
+    font-size:18px;
+}
+
+.chat-dp{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    object-fit:cover;
+}
+
+.contact-info strong{
+    font-size:14px;
+}
+
+.timestamp{
+    font-size:12px;
+    opacity:0.8;
+}
+.right-side{
+    display:flex;
+    align-items:center;
+}
+.right-side i{
+    margin-left:15px;
+    cursor:pointer;
+}
+
+/* Chat body */
+.chat-body{
+    flex:1;
+    padding:15px;
+    overflow-y:auto;
+    background:#ece5dd;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+/* Message bubbles */
+.message{
+    max-width:75%;
+    padding:10px 12px;
+    border-radius:8px;
+    position:relative;
+    font-size:14px;
+    line-height:1.4;
+}
+
+.message .time{
+    display:block;
+    font-size:10px;
+    text-align:right;
+    margin-top:5px;
+    opacity:0.7;
+}
+
+/* Received message */
+.received{
+    align-self:flex-start;
+    background:white;
+    border-top-left-radius:0;
+}
+
+/* Sent message */
+.sent{
+    align-self:flex-end;
+    background:#dcf8c6;
+    border-top-right-radius:0;
+}
+
+/* Bottom input bar */
+.chat-input{
+    padding:10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border-top:1px solid #ddd;
+}
+
+.chat-input input{
+    flex:1;
+    padding:8px 12px;
+    border-radius:20px;
+    border:1px solid #ccc;
+    outline:none;
+}
+
+.chat-input button{
+    background:#075E54;
+    border:none;
+    color:white;
+    padding:8px 12px;
+    border-radius:50%;
+    cursor:pointer;
+}
+.select-bar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #222;
+    justify-content: center;
+}
+
+.danger-btn {
+    background: #e53935;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.danger-btn:hover {
+    background: #c62828;
+}
+
+.cancel-btn {
+    background: #555;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background: #333;
+}
+/* Mobile */
+@media(max-width:768px){
+    body{
+        background:white;
+    }
+    .container{
+        max-width:100%;
+        height:90vh;
+        border-radius:0;
+        box-shadow:none;
+    }
+}

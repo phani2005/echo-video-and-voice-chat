@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Calls</title>
+
+    <link rel="stylesheet" href="main.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="top-bar" id="top-bar">
+
+            <i class="fa-solid fa-arrow-left back-btn" onclick="goBack()"></i>
+
+            <h3>Calls</h3>
+
+            <div class="menu">
+                ⋮
+                <div class="dropdown">
+                    <p onclick="clearCalls()">Delete All</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="callList"></div>
+
+    </div>
+
+    <script>
+
+        const user = localStorage.getItem("loggedUser")
+        function goBack() {
+            window.location.href = "/main.html"
+        }
+
+        async function loadCalls() {
+
+            const res = await fetch(`/calls/${user}`)
+
+            const calls = await res.json()
+            console.log("Calls: ",calls)
+
+            const container = document.getElementById("callList")
+
+            container.innerHTML = ""
+
+            calls.forEach(call => {
+
+                const div = document.createElement("div")
+
+                div.className = "contact"
+
+                div.innerHTML = `
+
+${call.profileimage ?
+                        `<img src="/${call.profileimage}">`
+                        :
+                        `<img src="uploads/profilephotodefault.png">`
+                    }
+
+<div class="contact-info">
+
+<strong>${call.name}</strong>
+
+<div class="timestamp">
+
+${call.type === "voice"
+    ? `<i class="fa-solid fa-phone" style="color:${call.missed ? "red" : "white"}"></i>`
+    : `<i class="fa-solid fa-video" style="color:${call.missed ? "red" : "white"}"></i>`}
+
+${call.missed
+    ? `<span style="color:red;">Missed</span>`
+    : call.direction === "outgoing"
+        ? "Outgoing"
+        : "Incoming"}
+
+• ${formatDuration(call.duration)}
+
+<br>
+
+<span style="font-size:12px;color:gray;">
+${new Date(call.time).toLocaleString()}
+</span>
+
+</div>
+
+</div>
+
+`
+
+                container.appendChild(div)
+
+            })
+
+        }
+
+        function formatDuration(sec) {
+
+            let m = Math.floor(sec / 60)
+
+            let s = sec % 60
+
+            return m + ":" + String(s).padStart(2, "0")
+
+        }
+
+        loadCalls()
+
+    </script>
+
+</body>
+
+</html>

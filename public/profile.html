@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>My Profile</h2>
+
+        <!-- Clickable Profile Image -->
+        <img id="profileImg"
+             style="width:150px;height:150px;border-radius:50%;object-fit:cover;cursor:pointer">
+
+        <h3 id="username"></h3>
+        <p id="email"></p>
+
+        <button onclick="goBack()">Back</button>
+    </div>
+
+
+    <!-- FULL SCREEN IMAGE MODAL -->
+    <div id="imageModal" style="
+        display:none;
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:black;
+        z-index:9999;
+    ">
+
+        <!-- TOP BAR -->
+        <div style="
+            display:flex;
+            justify-content:flex-end;
+            padding:15px;
+            background:rgba(0,0,0,0.6);
+        ">
+            <button onclick="closeImageModal()"
+                    style="background:red;color:white;
+                           border:none;padding:8px 15px;
+                           border-radius:5px;">
+                Close
+            </button>
+        </div>
+
+        <!-- CENTER IMAGE -->
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:90%;
+        ">
+            <img id="modalImage"
+                 style="max-width:95%;max-height:95%;object-fit:contain;">
+        </div>
+    </div>
+
+
+    <script>
+
+        const loggedEmail = localStorage.getItem("loggedUser")
+
+        async function loadProfile() {
+
+            try {
+
+                const encodedEmail = encodeURIComponent(loggedEmail)
+
+                const res = await fetch(`/get-profile/${encodedEmail}`)
+
+                if (!res.ok) {
+                    throw new Error("Profile not found")
+                }
+
+                const data = await res.json()
+
+                document.getElementById("username").innerText =
+                    data.username || "No Name"
+
+                document.getElementById("email").innerText =
+                    data.email || ""
+
+                const imagePath =
+                    data.profileimage
+                        ? "/" + data.profileimage
+                        : "/uploads/profilephotodefault.png"
+
+                document.getElementById("profileImg").src = imagePath
+
+                // Save image path for modal
+                document.getElementById("profileImg").onclick = () => {
+                    openImageModal(imagePath)
+                }
+
+            } catch (error) {
+                console.error("Error loading profile:", error)
+                alert("Could not load profile")
+            }
+        }
+
+        function openImageModal(src) {
+            document.getElementById("modalImage").src = src
+            document.getElementById("imageModal").style.display = "block"
+        }
+
+        function closeImageModal() {
+            document.getElementById("imageModal").style.display = "none"
+        }
+
+        // Close when clicking outside image
+        document.getElementById("imageModal").addEventListener("click", function(e) {
+            if (e.target.id === "imageModal") {
+                closeImageModal()
+            }
+        })
+
+        function goBack() {
+            window.location.href = "/main.html"
+        }
+
+        loadProfile()
+
+    </script>
+
+</body>
+</html>

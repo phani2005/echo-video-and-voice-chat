@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Add Contact</h2>
+
+        <form id="addForm">
+            <input type="text" id="name" placeholder="Contact Name" required>
+            <input type="email" id="email" placeholder="Contact Email" required>
+            <button type="submit">Add</button>
+        </form>
+
+    </div>
+
+    <script>
+        const pendingEmail = localStorage.getItem("pendingContactEmail")
+
+        if (pendingEmail) {
+            document.getElementById("email").value = pendingEmail
+            document.getElementById("email").readOnly = true
+            localStorage.removeItem("pendingContactEmail")
+        }
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+
+            const res = await fetch("/addcontact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ownerEmail: localStorage.getItem("loggedUser"),
+                    contactEmail: document.getElementById("email").value,
+                    contactName: document.getElementById("name").value
+                })
+            })
+            const data = await res.json()
+            if (!data.success) {
+                alert(data.message)
+                return
+            }
+
+            window.location.href = "/main.html"
+        })
+    </script>
+
+</body>
+
+</html>

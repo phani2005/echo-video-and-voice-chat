@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="top-bar">
+        <h3>Echo</h3>
+        <div class="menu">
+            ⋮
+            <div class="dropdown">
+                <p onclick="openProfile()">Profile</p>
+                <p onclick="openAddContact()">Add New Contact</p>
+                <p onclick="openChangeMyName()">Change Name</p>
+                <p onclick="openCreateGroup()">Create Group</p>
+                <p onclick="openChangeDp()">Change DP</p>
+                <p onclick="openCalls()">Calls</p>
+                <p onclick="logout()">Logout</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <input type="text" id="search" placeholder="Search contacts..." onkeyup="filterContacts()">
+
+    <!-- Contacts -->
+    <div id="contacts"></div>
+
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

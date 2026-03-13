@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Change Contact Name</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Change Contact Name</h2>
+
+        <form id="changeForm">
+            <input type="email" id="email" readonly>
+            <input type="text" id="newname" placeholder="New Name" required>
+            <button type="submit">Save</button>
+        </form>
+    </div>
+
+    <script>
+        const email = localStorage.getItem("pendingContactEmail")
+
+        document.getElementById("email").value = email
+
+        document.getElementById("changeForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+
+            await fetch("/changename", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ownerEmail: localStorage.getItem("loggedUser"),
+                    contactEmail: email,
+                    newName: document.getElementById("newname").value
+                })
+            })
+
+            localStorage.removeItem("pendingContactEmail")
+
+            window.location.href = "/main.html"
+        })
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Call</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            height: 100vh;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        /* remote video full screen */
+
+        #remoteVideo {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: black;
+        }
+
+        /* small local video */
+
+        #localVideo {
+            position: absolute;
+            width: 120px;
+            height: 170px;
+            object-fit: cover;
+            right: 15px;
+            top: 80px;
+            border-radius: 12px;
+            border: 2px solid white;
+        }
+
+        /* top name */
+
+        .topBar {
+            position: absolute;
+            top: 30px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* control buttons */
+
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .end {
+            background: red;
+            color: white;
+        }
+
+        .mute {
+            background: #333;
+            color: white;
+        }
+
+        .camera {
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="topBar" id="contactName"></div>
+
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay muted playsinline></video>
+
+    <div class="controls">
+
+        <button class="btn mute" id="muteBtn" onclick="toggleMute()">
+            <i class="fa-solid fa-microphone"></i>
+        </button>
+
+        <button class="btn camera" id="cameraBtn" onclick="toggleCamera()">
+            <i class="fa-solid fa-video"></i>
+        </button>
+
+        <button class="btn camera" onclick="switchCamera()">
+            <i class="fa-solid fa-rotate"></i>
+        </button>
+
+        <button class="btn end" onclick="endCall()">
+            <i class="fa-solid fa-phone-slash"></i>
+        </button>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
+
+    <script>
+
+        const socket = io(window.location.origin, { transports: ["websocket"] })
+
+        const loggedUser = localStorage.getItem("loggedUser")
+        const receiver = localStorage.getItem("chatWith")
+        const callType = localStorage.getItem("callType")
+
+        const incomingOffer = localStorage.getItem("incomingOffer")
+        const incomingFrom = localStorage.getItem("incomingFrom")
+
+        socket.emit("register-user", loggedUser)
+
+        document.getElementById("contactName").innerText =
+            localStorage.getItem("chatName") || receiver
+
+        let peer
+        let localStream
+        let facingMode = "user"
+        let isMuted = false
+        let cameraOff = false
+        let seconds = 0
+        let timerInterval
+
+        function startTimer() {
+
+            timerInterval = setInterval(() => {
+                seconds++
+            }, 1000)
+
+        }
+
+        async function createPeer(initiator, signal = null, from = null) {
+
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode },
+                audio: true
+            })
+
+            document.getElementById("localVideo").srcObject = localStream
+
+            peer = new SimplePeer({
+                initiator: initiator,
+                trickle: false,
+                stream: localStream,
+                config: {
+                    iceServers: [
+                        { urls: "stun:stun.l.google.com:19302" },
+                        {
+                            urls: [
+                                "turn:openrelay.metered.ca:80",
+                                "turn:openrelay.metered.ca:443",
+                                "turn:openrelay.metered.ca:443?transport=tcp"
+                            ],
+                            username: "openrelayproject",
+                            credential: "openrelayproject"
+                        }
+                    ]
+                }
+            })
+
+            peer.on("signal", data => {
+
+                if (initiator) {
+
+                    socket.emit("call-user", {
+                        to: receiver,
+                        offer: data,
+                        from: loggedUser,
+                        type: "video"
+                    })
+
+                } else {
+
+                    socket.emit("answer-call", {
+                        to: from,
+                        answer: data
+                    })
+
+                }
+
+            })
+
+            peer.on("stream", stream => {
+                document.getElementById("remoteVideo").srcObject = stream
+                startTimer()
+            })
+
+            if (signal) {
+                peer.signal(signal)
+            }
+
+        }
+
+        if (callType === "caller") {
+
+            createPeer(true)
+
+            setTimeout(() => {
+
+                if (!peer || !peer.connected) {
+
+                    socket.emit("missed-call", {
+                        to: receiver,
+                        from: loggedUser,
+                        type: "video"
+                    })
+
+                }
+
+            }, 30000) // 30 seconds
+
+        }
+
+        if (callType === "receiver" && incomingOffer) {
+            createPeer(false, JSON.parse(incomingOffer), incomingFrom)
+        }
+
+        socket.on("incoming-call", ({ from, offer, type }) => {
+
+            if (type !== "video") return
+
+            const accept = confirm("Incoming video call from " + from)
+
+            if (!accept) {
+                socket.emit("missed-call", {
+                    to: from,
+                    from: loggedUser,
+                    type: "video"
+                })
+                return
+            }
+
+            localStorage.setItem("callType", "receiver")
+            localStorage.setItem("incomingOffer", JSON.stringify(offer))
+            localStorage.setItem("incomingFrom", from)
+
+            window.location.href = "/videocall.html"
+
+        })
+
+        socket.on("call-answered", ({ answer }) => {
+            peer.signal(answer)
+        })
+
+        socket.on("call-ended", () => {
+            alert("Call ended")
+            window.location.href = "/chat.html"
+        })
+
+        function endCall() {
+
+            socket.emit("end-call", {
+                to: receiver,
+                from: loggedUser,
+                type: "video",
+                duration: seconds
+            })
+
+            if (timerInterval) {
+                clearInterval(timerInterval)
+            }
+
+            if (peer) {
+                peer.destroy()
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop())
+            }
+
+            window.location.href = "/chat.html"
+
+        }
+
+        function toggleMute() {
+
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = isMuted
+            })
+
+            isMuted = !isMuted
+
+        }
+
+        function toggleCamera() {
+
+            localStream.getVideoTracks().forEach(track => {
+                track.enabled = cameraOff
+            })
+
+            cameraOff = !cameraOff
+
+        }
+
+        async function switchCamera() {
+
+            facingMode = facingMode === "user" ? "environment" : "user"
+
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode },
+                audio: true
+            })
+
+            const newVideoTrack = newStream.getVideoTracks()[0]
+
+            peer.replaceTrack(
+                localStream.getVideoTracks()[0],
+                newVideoTrack,
+                localStream
+            )
+
+            localStream = newStream
+
+            document.getElementById("localVideo").srcObject = newStream
+
+        }
+
+    </script>
+
+</body>
+
+</html>

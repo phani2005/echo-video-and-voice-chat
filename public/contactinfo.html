@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Contact Info</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        }
+
+        /* TOP BAR */
+
+        .top-bar {
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        /* BACK BUTTON */
+
+        .back-btn {
+            position: absolute;
+            left: 15px;
+            cursor: pointer;
+        }
+
+        /* PROFILE CARD */
+
+        .profile-section {
+            text-align: center;
+            padding: 30px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 420px;
+
+            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* PROFILE IMAGE */
+
+        .profile-section img {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* NAME */
+
+        .info {
+            margin-top: 15px;
+            font-size: 22px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* EMAIL */
+
+        .email {
+            color: white;
+            opacity: 0.85;
+            margin-top: 5px;
+        }
+
+        /* GROUP MEMBERS CONTAINER */
+
+        #groupMembers {
+            width: 90%;
+            max-width: 420px;
+            margin: auto;
+
+            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+
+            padding: 10px;
+
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* MEMBER ROW */
+
+        #groupMembers>div {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 5px;
+
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* REMOVE BORDER FROM LAST */
+
+        #groupMembers>div:last-child {
+            border-bottom: none;
+        }
+
+        /* MEMBER IMAGE */
+
+        #groupMembers img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        /* NAME + EMAIL COLUMN */
+
+        #groupMembers>div div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* NAME */
+
+        #groupMembers>div div div:first-child {
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        /* EMAIL */
+
+        #groupMembers>div div div:last-child {
+            color: white;
+            opacity: 0.8;
+            font-size: 13px;
+        }
+
+        /* MOBILE */
+
+        @media(max-width:768px) {
+
+            .profile-section {
+                width: 70%;
+            }
+
+            #groupMembers {
+                width: 85%;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <div class="back-btn" onclick="goBack()">⬅ Back</div>
+        Contact Info
+    </div>
+
+    <div class="profile-section">
+        <img id="profileImage">
+        <div class="info" id="contactName"></div>
+        <div class="email" id="contactEmail"></div>
+    </div>
+    <div id="groupMembers" style="padding:20px;"></div>
+
+    <script>
+        const name = localStorage.getItem("infoName")
+        const email = localStorage.getItem("infoEmail")
+        const dp = localStorage.getItem("infoDp")
+        const loggedUser = localStorage.getItem("loggedUser")
+        const isGroup = localStorage.getItem("isGroup") === "true"
+
+        document.getElementById("contactName").innerText = name
+        document.getElementById("contactEmail").innerText = email
+        document.getElementById("profileImage").src = dp
+
+        if (isGroup) {
+
+            document.getElementById("contactEmail").style.display = "none"
+
+            loadGroupMembers()
+
+        }
+
+        async function loadGroupMembers() {
+
+            const res = await fetch(`/group-members/${email}/${loggedUser}`)
+            const data = await res.json()
+
+            const container = document.getElementById("groupMembers")
+            console.log("Container: ", container)
+
+            data.members.forEach(member => {
+
+                const div = document.createElement("div")
+
+                div.style.display = "flex"
+                div.style.alignItems = "center"
+                div.style.marginBottom = "15px"
+                div.style.justifyContent = "center"
+
+                div.innerHTML = `
+        <img src="${member.profileimage ? "/" + member.profileimage : "/uploads/profilephotodefault.png"}"
+             style="width:50px;height:50px;border-radius:50%;margin-right:15px">
+
+        <div>
+            <div style="font-weight:bold">
+                ${member.name} ${member.isAdmin ? "(Admin)" : ""}
+            </div>
+            <div style="color:gray;font-size:14px">
+                ${member.email}
+            </div>
+        </div>
+        `
+
+                container.appendChild(div)
+
+            })
+
+        }
+
+        function goBack() {
+            window.location.href = "/chat.html"
+        }
+    </script>
+
+</body>
+
+</html>

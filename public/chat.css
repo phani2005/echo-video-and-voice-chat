@@ -1,0 +1,508 @@
+/* RESET */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Segoe UI", Arial, sans-serif;
+}
+
+/* BACKGROUND */
+
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+}
+
+/* MAIN CONTAINER */
+
+.container{
+
+    width:100%;
+    max-width:420px;
+    height:95vh;
+
+    backdrop-filter:blur(18px);
+    background:rgba(255,255,255,0.08);
+
+    border:1px solid rgba(255,255,255,0.2);
+
+    border-radius:18px;
+
+    display:flex;
+    flex-direction:column;
+
+    overflow:visible;
+
+    box-shadow:0 15px 40px rgba(0,0,0,0.5);
+
+    position:relative;
+}
+
+/* TOP BAR */
+
+.top-bar{
+
+    background:linear-gradient(135deg,#00c6ff,#0072ff);
+
+    color:white;
+
+    padding:12px;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    border-top-left-radius:18px;
+    border-top-right-radius:18px;
+}
+
+/* LEFT SIDE */
+
+.left-side{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.left-side i{
+    cursor:pointer;
+    font-size:18px;
+}
+
+/* PROFILE IMAGE */
+
+.chat-dp{
+
+    width:42px;
+    height:42px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+
+    border:2px solid rgba(255,255,255,0.5);
+}
+
+/* CONTACT INFO */
+
+.contact-info strong{
+
+    font-size:14px;
+}
+
+.timestamp{
+
+    font-size:11px;
+    opacity:0.85;
+}
+
+/* RIGHT SIDE */
+
+.right-side{
+    display:flex;
+    align-items:center;
+}
+
+.right-side i{
+
+    margin-left:15px;
+    cursor:pointer;
+
+    font-size:18px;
+
+    transition:0.2s;
+}
+
+.right-side i:hover{
+    transform:scale(1.15);
+}
+
+/* MENU WRAPPER */
+
+.menu-wrapper{
+    position:relative;
+}
+
+/* DROPDOWN MENU */
+
+.dropdown-menu{
+
+    position:absolute;
+    right:0;
+    top:35px;
+
+    background:white;
+
+    border-radius:8px;
+
+    display:none;
+
+    width:160px;
+
+    box-shadow:0 10px 25px rgba(0,0,0,0.3);
+
+    z-index:999;
+}
+
+.dropdown-menu div{
+
+    padding:12px;
+
+    cursor:pointer;
+
+    font-size:14px;
+
+    color:#333;
+
+    transition:0.2s;
+}
+
+.dropdown-menu div:hover{
+
+    background:#f0f0f0;
+}
+
+/* SELECT BAR */
+
+.select-bar{
+
+    display:flex;
+    gap:10px;
+
+    padding:10px;
+
+    background:#222;
+
+    justify-content:center;
+}
+
+/* BUTTONS */
+
+.danger-btn{
+
+    background:#e53935;
+
+    color:white;
+
+    border:none;
+
+    padding:8px 14px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+}
+
+.danger-btn:hover{
+    background:#c62828;
+}
+
+.cancel-btn{
+
+    background:#555;
+
+    color:white;
+
+    border:none;
+
+    padding:8px 14px;
+
+    border-radius:6px;
+
+    cursor:pointer;
+}
+
+.cancel-btn:hover{
+    background:#333;
+}
+
+/* CHAT BODY */
+
+.chat-body{
+
+    flex:1;
+    padding:15px;
+
+    overflow-y:auto;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:10px;
+
+    background:linear-gradient(
+        rgba(255,255,255,0.05),
+        rgba(255,255,255,0.05)
+    );
+}
+
+/* SCROLLBAR */
+
+.chat-body::-webkit-scrollbar{
+    width:6px;
+}
+
+.chat-body::-webkit-scrollbar-thumb{
+
+    background:rgba(255,255,255,0.3);
+
+    border-radius:10px;
+}
+
+/* MESSAGE BUBBLE */
+
+.message{
+
+    max-width:75%;
+
+    padding:10px 12px;
+
+    border-radius:10px;
+
+    font-size:14px;
+
+    line-height:1.4;
+
+    position:relative;
+
+    animation:fadeIn 0.2s ease;
+}
+
+/* MESSAGE TIME */
+
+.message .time{
+
+    display:block;
+
+    font-size:10px;
+
+    text-align:right;
+
+    margin-top:5px;
+
+    opacity:0.7;
+}
+
+/* RECEIVED MESSAGE */
+
+.received{
+
+    align-self:flex-start;
+
+    background:#ffffff;
+
+    border-top-left-radius:0;
+
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+/* SENT MESSAGE */
+
+.sent{
+
+    align-self:flex-end;
+
+    background:linear-gradient(135deg,#25D366,#128C7E);
+
+    border-top-right-radius:0;
+
+    box-shadow:0 3px 8px rgba(0,0,0,0.2);
+}
+
+/* MESSAGE IMAGES */
+
+.message img{
+
+    max-width:200px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.message img:hover{
+    transform:scale(1.02);
+}
+
+/* VIDEO */
+
+.message video{
+
+    max-width:200px;
+
+    border-radius:10px;
+}
+
+/* AUDIO */
+
+.message audio{
+    width:200px;
+}
+
+/* CHAT INPUT */
+
+.chat-input{
+
+    padding:10px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    border-top:1px solid rgba(255,255,255,0.2);
+
+    background:rgba(255,255,255,0.08);
+}
+
+/* INPUT */
+
+.chat-input input{
+
+    flex:1;
+
+    padding:10px 14px;
+
+    border-radius:20px;
+
+    border:none;
+
+    outline:none;
+
+    background:white;
+
+    font-size:14px;
+}
+
+/* ATTACH ICON */
+
+#attachBtn{
+
+    cursor:pointer;
+
+    font-size:18px;
+
+    color:white;
+}
+
+/* SEND BUTTON */
+
+.chat-input button{
+
+    background:#00c853;
+
+    border:none;
+
+    color:white;
+
+    width:36px;
+    height:36px;
+
+    border-radius:50%;
+
+    cursor:pointer;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    transition:0.2s;
+}
+
+.chat-input button:hover{
+
+    transform:scale(1.1);
+}
+
+/* EMOJI CONTAINER */
+
+.emoji-container{
+
+    position:absolute;
+
+    bottom:70px;
+
+    left:0;
+
+    width:100%;
+
+    display:none;
+
+    background:white;
+
+    border-top:1px solid #ddd;
+
+    z-index:1000;
+
+    max-height:300px;
+}
+
+/* EMOJI PICKER */
+
+emoji-picker{
+
+    width:100%;
+
+    height:300px;
+}
+.date-divider{
+    text-align:center;
+    margin:15px 0;
+    position:relative;
+}
+
+.date-divider span{
+    background:#d9fdd3;
+    color:#444;
+    padding:5px 12px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:500;
+}
+
+/* MESSAGE ANIMATION */
+
+@keyframes fadeIn{
+
+    from{
+        opacity:0;
+        transform:translateY(5px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+body{
+    background:#111;
+}
+
+.container{
+
+    max-width:100%;
+    height:100vh;
+
+    border-radius:0;
+
+}
+
+.top-bar{
+
+    border-radius:0;
+}
+
+}

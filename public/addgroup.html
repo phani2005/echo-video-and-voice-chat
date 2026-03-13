@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Create Group</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Create Group</h2>
+
+        <form id="groupForm" enctype="multipart/form-data">
+
+            <div style="text-align:center;margin-bottom:10px;">
+                <i class="fa-solid fa-users" style="font-size:60px;color:gray;"></i>
+            </div>
+
+            <input type="text" id="groupName" placeholder="Group Name" required>
+
+            <textarea id="emails" placeholder="Enter member emails separated by comma" required></textarea>
+
+            <input type="file" id="groupDp" name="photo">
+
+            <button type="submit">Create Group</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById("groupForm").addEventListener("submit", async (e) => {
+            e.preventDefault()
+
+            const formData = new FormData()
+
+            formData.append("groupName", document.getElementById("groupName").value)
+            formData.append("members", document.getElementById("emails").value)
+            formData.append("admin", localStorage.getItem("loggedUser"))
+
+            const file = document.getElementById("groupDp").files[0]
+            if (file) formData.append("photo", file)
+
+            await fetch("/create-group", {
+                method: "POST",
+                body: formData
+            })
+
+            window.location.href = "/main.html"
+        })
+    </script>
+
+</body>
+
+</html>
