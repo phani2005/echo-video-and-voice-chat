@@ -1,5 +1,4 @@
 const loggedUserEmail = localStorage.getItem("loggedUser")
-
 async function loadContacts() {
 
     // const res = await fetch(`/getcontacts/${loggedUserEmail}`)
