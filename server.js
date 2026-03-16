@@ -149,27 +149,20 @@ app.post("/verify-otp", async (req, res) => {
     }
 })
 app.post("/login", async (req, res) => {
+
     const { email, password } = req.body
     const user = await User.findOne({ email })
+
     if (!user) {
-        return res.send(`
-            <script>
-                alert("User not found")
-                window.location.href="/login.html"
-            </script>`)
+        return res.redirect("/login.html")
     }
+
     if (user.password != password) {
-        return res.send(`
-            <script>
-                 alert("Invalid Password")
-                 window.location.href="/login.html"
-            </script>`)
+        return res.redirect("/login.html")
     }
-    res.send(`
-             <script>
-                localStorage.setItem("loggedUser","${email}")
-                window.location.href="/main.html"
-                </script>`)
+
+    res.redirect("/main.html")
+
 })
 app.get("/", (req, res) => {
     res.redirect("/login.html")
