@@ -24,6 +24,12 @@
 
     </form>
 </div>
+    <script>
+        document.querySelector("form").addEventListener("submit", function(){
+    const email = document.querySelector("#email").value
+    localStorage.setItem("loggedUser", email)
+})
+    </script>
 
 </body>
 </html>
