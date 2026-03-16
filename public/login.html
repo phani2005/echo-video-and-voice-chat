@@ -25,10 +25,31 @@
     </form>
 </div>
     <script>
-        document.querySelector("form").addEventListener("submit", function(){
-    const email = document.querySelector("#email").value
-    localStorage.setItem("loggedUser", email)
+        document.getElementById("loginForm").addEventListener("submit", async function(e){
+
+    e.preventDefault()
+
+    const formData = new FormData(this)
+
+    const res = await fetch("/login",{
+        method:"POST",
+        body:formData
+    })
+
+    const data = await res.json()
+
+    if(data.success){
+
+        localStorage.setItem("loggedUser", data.email)
+
+        window.location.href="/main.html"
+
+    }else{
+        alert(data.message)
+    }
+
 })
+
     </script>
 
 </body>
