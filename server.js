@@ -14,6 +14,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/uploads", express.static("uploads"))
 const httpServer = createServer(app)
 const io = new Server(httpServer)
+const PORT=process.env.PORT
 mongoose.connect(process.env.MONGO_URL)
     .then(() => { console.log("Mongodb is connected successfully") })
     .catch((e) => { console.log(e) })
@@ -970,6 +971,6 @@ app.get("/calls/:email", async (req, res) => {
     res.json(result)
 
 })
-httpServer.listen(process.env.PORT, "0.0.0.0", () => {
+httpServer.listen(PORT, "0.0.0.0", () => {
     console.log("Server is running at localhost 5000")
 })
