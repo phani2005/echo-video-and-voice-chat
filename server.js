@@ -337,7 +337,8 @@ app.get("/conversations/:email", async (req, res) => {
         const unreadCount = await Message.countDocuments({
             from: email,
             to: userEmail,
-            seen: false
+            seen: false,
+            hiddenFor:{$ne:userEmail}
         })
 
         result.push({
