@@ -5,6 +5,8 @@ import nodemailer from "nodemailer"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { type } from "os"
+import dotenv from "dotenv"
+dotenv.config()
 const app = express()
 app.use(express.json())
 app.use(express.static("public"))
@@ -12,7 +14,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/uploads", express.static("uploads"))
 const httpServer = createServer(app)
 const io = new Server(httpServer)
-mongoose.connect("mongodb://localhost:27017/local")
+mongoose.connect(process.env.MONGO_URL)
     .then(() => { console.log("Mongodb is connected successfully") })
     .catch((e) => { console.log(e) })
 const onlineUsers = {}//online users object
@@ -89,8 +91,8 @@ const upload = multer({ storage: storage })
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "phani005.setty@gmail.com",
-        pass: "tawh zrdr qgky cnqk"
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 })
 let tempUser = {}
@@ -967,6 +969,6 @@ app.get("/calls/:email", async (req, res) => {
     res.json(result)
 
 })
-httpServer.listen(5000, "0.0.0.0", () => {
+httpServer.listen(process.env.PORT, "0.0.0.0", () => {
     console.log("Server is running at localhost 5000")
 })
