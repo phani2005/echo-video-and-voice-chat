@@ -161,7 +161,7 @@ app.post("/login", async (req, res) => {
         return res.redirect("/login.html")
     }
 
-    res.redirect("/public/main.html")
+    res.redirect("/main.html")
 
 })
 app.get("/", (req, res) => {
