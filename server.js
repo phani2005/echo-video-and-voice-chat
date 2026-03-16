@@ -154,14 +154,14 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ email })
 
     if (!user) {
-        return res.redirect("/login.html")
+        return res.json({ success: false, message: "User not found" })
     }
 
     if (user.password != password) {
-        return res.redirect("/login.html")
+        return res.json({ success: false, message: "Invalid password" })
     }
 
-    res.redirect("/main.html")
+    res.json({ success: true, email: email })
 
 })
 app.get("/", (req, res) => {
