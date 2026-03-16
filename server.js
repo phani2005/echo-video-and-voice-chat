@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use("/uploads", express.static("uploads"))
 const httpServer = createServer(app)
 const io = new Server(httpServer)
-const PORT=process.env.PORT
+const PORT=process.env.PORT||5000
 mongoose.connect(process.env.MONGO_URL)
     .then(() => { console.log("Mongodb is connected successfully") })
     .catch((e) => { console.log(e) })
@@ -172,6 +172,9 @@ app.post("/login", async (req, res) => {
                 </script>`)
 })
 app.get("/", (req, res) => {
+    res.redirect("/login.html")
+})
+app.get("/login", (req,res)=>{
     res.redirect("/login.html")
 })
 app.post("/resetpassword", async (req, res) => {
