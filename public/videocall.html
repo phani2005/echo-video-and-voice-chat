@@ -105,9 +105,9 @@
             <i class="fa-solid fa-video"></i>
         </button>
 
-        <button class="btn camera" onclick="switchCamera()">
-            <i class="fa-solid fa-rotate"></i>
-        </button>
+        <!-- <button class="btn camera" onclick="switchCamera()">
+            <i class="fa-solid fa-rotate" id="rotate"></i>
+        </button> -->
 
         <button class="btn end" onclick="endCall()">
             <i class="fa-solid fa-phone-slash"></i>
@@ -295,21 +295,41 @@
 
         function toggleMute() {
 
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = isMuted
-            })
+            if (!localStream) return
 
             isMuted = !isMuted
+
+            localStream.getAudioTracks().forEach(track => {
+                track.enabled = !isMuted
+            })
+
+            const icon = document.querySelector("#muteBtn i")
+
+            if (isMuted) {
+                icon.className = "fa-solid fa-microphone-slash"
+            } else {
+                icon.className = "fa-solid fa-microphone"
+            }
 
         }
 
         function toggleCamera() {
 
-            localStream.getVideoTracks().forEach(track => {
-                track.enabled = cameraOff
-            })
+            if (!localStream) return
 
             cameraOff = !cameraOff
+
+            localStream.getVideoTracks().forEach(track => {
+                track.enabled = !cameraOff
+            })
+
+            const icon = document.querySelector("#cameraBtn i")
+
+            if (cameraOff) {
+                icon.className = "fa-solid fa-video-slash"
+            } else {
+                icon.className = "fa-solid fa-video"
+            }
 
         }
 
@@ -318,21 +338,27 @@
             facingMode = facingMode === "user" ? "environment" : "user"
 
             const newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode },
+                video: { facingMode: facingMode },
                 audio: true
             })
 
             const newVideoTrack = newStream.getVideoTracks()[0]
 
-            peer.replaceTrack(
-                localStream.getVideoTracks()[0],
-                newVideoTrack,
-                localStream
-            )
+            if (peer) {
+                peer.replaceTrack(
+                    localStream.getVideoTracks()[0],
+                    newVideoTrack,
+                    localStream
+                )
+            }
 
-            localStream = newStream
+            // stop old track
+            localStream.getVideoTracks()[0].stop()
 
-            document.getElementById("localVideo").srcObject = newStream
+            localStream.removeTrack(localStream.getVideoTracks()[0])
+            localStream.addTrack(newVideoTrack)
+
+            document.getElementById("localVideo").srcObject = localStream
 
         }
 
