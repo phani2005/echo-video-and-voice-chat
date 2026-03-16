@@ -303,6 +303,12 @@
             const data = await res.json()
 
             const messages = data.messages || []
+            if (!isGroup) {
+                socket.emit("mark-seen", {
+                    from: receiverEmail,
+                    to: loggedUser
+                })
+            }
 
             document.getElementById("chatName").innerText =
                 data.displayName || receiverEmail
@@ -498,11 +504,23 @@
         }
 
         socket.on("receive-message", (msgObj) => {
+
             console.log("Received message:", msgObj)
+
+            // ignore messages from other chats
+            if (
+                msgObj.from !== receiverEmail &&
+                msgObj.to !== receiverEmail &&
+                !msgObj.isGroup
+            ) {
+                return
+            }
+
             if (msgObj.from === loggedUser) {
                 addMessage(msgObj, "sent")
             } else {
                 addMessage(msgObj, "received")
+
                 socket.emit("mark-seen", {
                     from: msgObj.from,
                     to: loggedUser
