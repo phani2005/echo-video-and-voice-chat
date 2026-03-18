@@ -668,19 +668,19 @@
 
             if (msgObj.type === "image") {
                 content = `
-    <img src="/uploads/${msgObj.message}" 
+    <img src="/${msgObj.message}" 
          style="max-width:200px;border-radius:10px;cursor:pointer;"
-         onclick="openImageModal('/uploads/${msgObj.message}')">
+         onclick="openImageModal('${msgObj.message}')">
 `
             }
             else if (msgObj.type === "video") {
                 content = `<video controls width="200">
-                     <source src="/uploads/${msgObj.message}">
+                     <source src="${msgObj.message}">
                    </video>`
             }
             else if (msgObj.type === "audio") {
                 content = `<audio controls>
-                     <source src="/uploads/${msgObj.message}">
+                     <source src="${msgObj.message}">
                    </audio>`
             }
             else if (msgObj.type === "file") {
@@ -697,7 +697,7 @@
                 else if (ext === "zip") icon = "🗜️"
 
                 content = `
-        <a href="/uploads/${msgObj.message}" target="_blank" 
+        <a href="${msgObj.message}" target="_blank" 
            style="text-decoration:none;color:#075E54;font-weight:bold;">
             ${icon} ${fileName}
         </a>
