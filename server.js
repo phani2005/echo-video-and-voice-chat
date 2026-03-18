@@ -7,6 +7,8 @@ import { Server } from "socket.io"
 import { type } from "os"
 import dotenv from "dotenv"
 import cors from "cors"
+import { v2 as cloudinary } from "cloudinary"
+import { CloudinaryStorage } from "multer-storage-cloudinary"
 dotenv.config()
 const app = express()
 app.use(cors())
@@ -15,6 +17,11 @@ app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }))
 app.use("/uploads", express.static("uploads"))
 const httpServer = createServer(app)
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET
+})
 const io = new Server(httpServer, {
     cors: {
         origin: "*",
@@ -87,15 +94,32 @@ const callSchema = new mongoose.Schema({
 })
 
 const Call = mongoose.model("Call", callSchema)
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/")
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname)
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+
+        let folder = "chat-app"
+        let resource_type = "auto"
+
+        if (file.mimetype.startsWith("image")) {
+            folder = "chat-app/images"
+        } else if (file.mimetype.startsWith("video")) {
+            folder = "chat-app/videos"
+        } else if (file.mimetype.startsWith("audio")) {
+            folder = "chat-app/audio"
+        } else {
+            folder = "chat-app/files"
+        }
+
+        return {
+            folder,
+            resource_type,
+            public_id: Date.now() + "-" + file.originalname
+        }
     }
 })
-const upload = multer({ storage: storage })
+
+const upload = multer({ storage })
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -450,7 +474,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
 
     const { from, to, type, isGroup } = req.body
 
-    const fileName = req.file.filename
+    const fileUrl = req.file.path   // ✅ CLOUDINARY URL
 
     let newMessage
 
@@ -458,7 +482,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
 
         newMessage = await Message.create({
             from,
-            message: fileName,
+            message: fileUrl,
             type,
             isGroup: true,
             groupId: to
@@ -467,9 +491,11 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
         const group = await Group.findById(to)
 
         for (let member of group.members) {
-            const memberSocket = onlineUsers[member]
-            if (memberSocket) {
-                io.to(memberSocket).emit("receive-message", newMessage)
+            const sockets = onlineUsers[member]
+            if (sockets) {
+                sockets.forEach(id => {
+                    io.to(id).emit("receive-message", newMessage)
+                })
             }
         }
 
@@ -478,21 +504,27 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
         newMessage = await Message.create({
             from,
             to,
-            message: fileName,
+            message: fileUrl,
             type
         })
 
-        const receiverSocketId = onlineUsers[to]
-        console.log("Receiver socket id if not group: ", receiverSocketId)
-        if (receiverSocketId) {
+        const receiverSockets = onlineUsers[to]
+
+        if (receiverSockets) {
             newMessage.delivered = true
             await newMessage.save()
-            io.to(receiverSocketId).emit("receive-message", newMessage)
+
+            receiverSockets.forEach(id => {
+                io.to(id).emit("receive-message", newMessage)
+            })
         }
 
-        const senderSocketId = onlineUsers[from]
-        if (senderSocketId) {
-            io.to(senderSocketId).emit("receive-message", newMessage)
+        const senderSockets = onlineUsers[from]
+
+        if (senderSockets) {
+            senderSockets.forEach(id => {
+                io.to(id).emit("receive-message", newMessage)
+            })
         }
     }
 
