@@ -11,7 +11,7 @@
 <div class="container">
     <h2>Login</h2>
 
-    <form action="/login" method="POST">
+    <form action="/login" method="POST" id="loginForm">
 
         <input type="email" name="email" placeholder="Enter email" required>
 
@@ -25,32 +25,30 @@
     </form>
 </div>
     <script>
-        document.getElementById("loginForm").addEventListener("submit", async function(e){
+document.getElementById("loginForm").addEventListener("submit", async function(e){
 
     e.preventDefault()
 
-    const formData = new FormData(this)
+    const email = this.email.value
+    const password = this.password.value
 
     const res = await fetch("/login",{
         method:"POST",
-        body:formData
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify({ email, password })
     })
 
     const data = await res.json()
 
     if(data.success){
-
         localStorage.setItem("loggedUser", data.email)
-
         window.location.href="/main.html"
-
     }else{
         alert(data.message)
     }
-
 })
-
-    </script>
-
+</script>
 </body>
 </html>
