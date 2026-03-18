@@ -1013,5 +1013,5 @@ app.get("/calls/:email", async (req, res) => {
 
 })
 httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log("Server is running at localhost 5000")
+    console.log(`Server is running at localhost ${PORT}`)
 })
