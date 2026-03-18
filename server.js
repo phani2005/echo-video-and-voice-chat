@@ -131,29 +131,41 @@ let tempUser = {}
 let generatedOTP = ""
 let resetemail = ""
 app.post("/register", upload.single("photo"), async (req, res) => {
-    const { username, email, password } = req.body
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-        return res.send(`
-            <script>
-               alert("User already exists! Please login")
-               window.location.href="/login.html"
-            </script>`)
+    try {
+
+        console.log("FILE:", req.file)
+
+        const { username, email, password } = req.body
+
+        const existingUser = await User.findOne({ email })
+        if (existingUser) {
+            return res.send(`<script>alert("User already exists!"); window.location.href="/login.html"</script>`)
+        }
+
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
+
+        tempUser = {
+            username,
+            email,
+            password,
+            profileimage: req.file?.path || ""
+        }
+
+        console.log("TEMP USER:", tempUser)
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "OTP Verification",
+            text: "Your OTP is: " + generatedOTP
+        })
+
+        res.redirect("/otp.html")
+
+    } catch (err) {
+        console.log("REGISTER ERROR:", err)
+        res.status(500).send("Registration failed")
     }
-    generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
-    tempUser = {
-        username,
-        email,
-        password,
-        profileimage: req.file ? req.file.path : ""
-    }
-    await transporter.sendMail({
-        from: "phani005.setty@gmail.com",
-        to: email,
-        subject: "Your OTP verfication",
-        text: "Your OTP is: " + generatedOTP
-    })
-    res.redirect("/otp.html")
 })
 app.post("/verify-otp", async (req, res) => {
     const { otp } = req.body
