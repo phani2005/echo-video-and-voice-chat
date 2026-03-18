@@ -14,7 +14,9 @@ async function loadContacts() {
         div.className = "contact"
         div.innerHTML = `
     ${contact.profileimage
-                ? `<img src="/${contact.profileimage}">`
+                ? `<img src="${contact.profileimage.startsWith("http") 
+    ? contact.profileimage 
+    : "/" + contact.profileimage}">`
                 : contact.isGroup
                     ? `<div class="group-icon"><i class="fa-solid fa-users"></i></div>`
                     : `<img src="uploads/profilephotodefault.png">`
