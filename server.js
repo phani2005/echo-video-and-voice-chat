@@ -127,14 +127,11 @@ let resetemail = ""
 app.post("/register", upload.single("photo"), async (req, res) => {
     try {
 
-        console.log("BODY:", req.body)
-        console.log("FILE:", req.file)
-
         const { username, email, password } = req.body
 
         const existingUser = await User.findOne({ email })
         if (existingUser) {
-            return res.send(`<script>alert("User already exists!"); window.location.href="/login.html"</script>`)
+            return res.json({ success: false, message: "User exists" })
         }
 
         generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
@@ -143,23 +140,29 @@ app.post("/register", upload.single("photo"), async (req, res) => {
             username,
             email,
             password,
-            profileimage: req.file ? req.file.path : ""   // ✅ SAFE
+            profileimage: req.file ? req.file.path : ""
         }
 
         console.log("TEMP USER:", tempUser)
 
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "OTP Verification",
-            text: "Your OTP is: " + generatedOTP
-        })
+        // 🔥 TRY sending mail but DON'T CRASH if fails
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "OTP Verification",
+                text: "Your OTP is: " + generatedOTP
+            })
+            console.log("Email sent")
+        } catch (mailErr) {
+            console.log("MAIL ERROR:", mailErr.message)
+        }
 
-        res.redirect("/otp.html")
+        res.json({ success: true }) // ✅ ALWAYS RESPOND
 
     } catch (err) {
         console.log("REGISTER ERROR:", err)
-        res.status(500).send(err.message)
+        res.json({ success: false, message: "Server error" })
     }
 })
 app.post("/verify-otp", async (req, res) => {
