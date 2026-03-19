@@ -121,6 +121,7 @@ let resetemail = ""
 app.post("/register", upload.single("photo"), async (req, res) => {
     try {
 
+        console.log("BODY:", req.body)
         console.log("FILE:", req.file)
 
         const { username, email, password } = req.body
@@ -136,7 +137,7 @@ app.post("/register", upload.single("photo"), async (req, res) => {
             username,
             email,
             password,
-            profileimage: req.file?.path || ""
+            profileimage: req.file ? req.file.path : ""   // ✅ SAFE
         }
 
         console.log("TEMP USER:", tempUser)
@@ -152,7 +153,7 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
     } catch (err) {
         console.log("REGISTER ERROR:", err)
-        res.status(500).send("Registration failed")
+        res.status(500).send(err.message)
     }
 })
 app.post("/verify-otp", async (req, res) => {
