@@ -29,4 +29,32 @@
 </div>
 
 </body>
+    <script>
+document.querySelector("form").addEventListener("submit", async function(e){
+
+    e.preventDefault()
+
+    try {
+
+        const formData = new FormData(this)
+
+        const res = await fetch("/register", {
+            method: "POST",
+            body: formData
+        })
+
+        const data = await res.json()
+
+        if (data.success) {
+            window.location.href = "/otp.html"
+        } else {
+            alert(data.message)
+        }
+
+    } catch (err) {
+        alert("Server error")
+        console.log(err)
+    }
+})
+</script>
 </html>
