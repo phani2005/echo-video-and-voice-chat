@@ -95,30 +95,18 @@ const callSchema = new mongoose.Schema({
 
 const Call = mongoose.model("Call", callSchema)
 const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
+    cloudinary,
     params: async (req, file) => {
 
-        let folder = "chat-app"
-        let resource_type = "auto"
-
-        if (file.mimetype.startsWith("image")) {
-            folder = "chat-app/images"
-        } else if (file.mimetype.startsWith("video")) {
-            folder = "chat-app/videos"
-        } else if (file.mimetype.startsWith("audio")) {
-            folder = "chat-app/audio"
-        } else {
-            folder = "chat-app/files"
-        }
+        console.log("Uploading file:", file.originalname)
 
         return {
-            folder,
-            resource_type,
-            public_id: Date.now() + "-" + file.originalname
+            folder: "chat-app",
+            resource_type: "auto",
+            public_id: Date.now().toString()
         }
     }
 })
-
 const upload = multer({ storage })
 const transporter = nodemailer.createTransport({
     service: "gmail",
