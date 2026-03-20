@@ -860,16 +860,20 @@
             }
 
         })
-        socket.on("incoming-group-call", ({ from, groupId }) => {
+        socket.on("incoming-group-call", ({ from, groupId, type }) => {
 
-    const accept = confirm(`Group video call from ${from}`)
+    const accept = confirm(`Group ${type} call from ${from}`)
 
     if (!accept) return
 
     localStorage.setItem("chatWith", groupId)
     localStorage.setItem("callType", "receiver")
 
-    window.location.href = "/groupvideocall.html"
+    if (type === "video") {
+        window.location.href = "/groupvideocall.html"
+    } else {
+        window.location.href = "/groupvoicecall.html"
+    }
 })
         socket.on("call-answered", async ({ answer }) => {
             await peerConnection.setRemoteDescription(
