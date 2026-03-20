@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "multer-storage-cloudinary": "^4.0.0",
+    "@sendgrid/mail": "^8.x",
     "resend": "^3.x",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.6",
