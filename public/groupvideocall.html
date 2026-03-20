@@ -275,31 +275,41 @@ peer.on("error", () => {
 
         socket.on("incoming-call", ({ from, offer, type }) => {
 
-            if (type !== "video") return
+    if (type !== "video") return
 
-            if (!localStream) {
+    if (!localStream) {
 
-                navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                }).then(stream => {
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        }).then(stream => {
 
-                    localStream = stream
+            localStream = stream
 
-                    addLocalVideo()
+            addLocalVideo()
 
-                    createPeer(from, false, offer)
+            createPeer(from, false, offer)
 
-                })
-
-            } else {
-
-                createPeer(from, false, offer)
-
-            }
+            // 🔥 ADD THIS
+            socket.emit("join-group-call", {
+                groupId,
+                user: loggedUser
+            })
 
         })
 
+    } else {
+
+        createPeer(from, false, offer)
+
+        // 🔥 ADD THIS
+        socket.emit("join-group-call", {
+            groupId,
+            user: loggedUser
+        })
+    }
+
+})
         socket.on("call-answered", ({ from, answer }) => {
 
             if (peers[from]) {
@@ -332,7 +342,7 @@ peer.on("error", () => {
 
     if (user === loggedUser) return
 
-    if (!peers[user]) {
+    if (!peers[user]&& user !== loggedUser) {
         createPeer(user, true)
     }
 
