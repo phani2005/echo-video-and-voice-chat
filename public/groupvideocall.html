@@ -205,7 +205,7 @@
                 : "/profilephotodefault.png"
 
             card.innerHTML = `
-<video autoplay></video>
+<video id="video-${user.email}" autoplay></video>
 <div class="user-name">${user.name}</div>
 `
 
@@ -291,10 +291,7 @@ peer.on("error", () => {
             createPeer(from, false, offer)
 
             // 🔥 ADD THIS
-            socket.emit("join-group-call", {
-                groupId,
-                user: loggedUser
-            })
+            
 
         })
 
@@ -342,7 +339,7 @@ peer.on("error", () => {
 
     if (user === loggedUser) return
 
-    if (!peers[user]&& user !== loggedUser) {
+    if (!peers[user]) {
         createPeer(user, true)
     }
 
