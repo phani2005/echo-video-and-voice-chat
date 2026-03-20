@@ -157,26 +157,29 @@
 
         async function startGroupCall() {
 
-    localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-    })
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            })
 
-    addLocalVideo()
+            addLocalVideo()
 
-    const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
-    const data = await res.json()
+            const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
+            const data = await res.json()
 
-    groupMembers = data.members
+            groupMembers = data.members
 
-    document.getElementById("groupName").innerText = data.groupName
+            document.getElementById("groupName").innerText = data.groupName
 
-    // 🔥 ADD THIS
-    socket.emit("join-group-call", {
-        groupId,
-        user: loggedUser
-    })
-}
+            groupMembers.forEach(member => {
+
+                if (member.email === loggedUser) return
+
+                createPeer(member.email, true)
+
+            })
+
+        }
 
         function addLocalVideo() {
 
@@ -201,11 +204,11 @@
             card.className = "user-card"
 
             const dp = user.profileimage
-                ? user.profileimage
-                : "/profilephotodefault.png"
+                ? "/" + user.profileimage
+                : "/uploads/profilephotodefault.png"
 
             card.innerHTML = `
-<video id="video-${user.email}" autoplay></video>
+<video autoplay></video>
 <div class="user-name">${user.name}</div>
 `
 
@@ -216,7 +219,6 @@
         }
 
         function createPeer(userEmail, initiator, signal = null) {
-            if (peers[userEmail]) return
 
             const peer = new SimplePeer({
                 initiator,
@@ -263,46 +265,36 @@
             })
 
             if (signal) peer.signal(signal)
-            peer.on("close", () => {
-    delete peers[userEmail]
-})
-
-peer.on("error", () => {
-    delete peers[userEmail]
-})
 
         }
 
         socket.on("incoming-call", ({ from, offer, type }) => {
 
-    if (type !== "video") return
+            if (type !== "video") return
 
-    if (!localStream) {
+            if (!localStream) {
 
-        navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        }).then(stream => {
+                navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                }).then(stream => {
 
-            localStream = stream
+                    localStream = stream
 
-            addLocalVideo()
+                    addLocalVideo()
 
-            createPeer(from, false, offer)
+                    createPeer(from, false, offer)
 
-            // 🔥 ADD THIS
-            
+                })
+
+            } else {
+
+                createPeer(from, false, offer)
+
+            }
 
         })
 
-    } else {
-
-        createPeer(from, false, offer)
-
-        // 🔥 ADD THIS
-    }
-
-})
         socket.on("call-answered", ({ from, answer }) => {
 
             if (peers[from]) {
@@ -333,13 +325,11 @@ peer.on("error", () => {
         }
         socket.on("user-joined-call", ({ user }) => {
 
-    if (user === loggedUser) return
+            if (user === loggedUser) return
 
-    if (!peers[user]) {
-        createPeer(user, true)
-    }
+            createPeer(user, true)
 
-})
+        })
 
         function toggleCamera() {
 
