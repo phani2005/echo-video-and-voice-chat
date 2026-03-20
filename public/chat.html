@@ -860,6 +860,17 @@
             }
 
         })
+        socket.on("incoming-group-call", ({ from, groupId }) => {
+
+    const accept = confirm(`Group video call from ${from}`)
+
+    if (!accept) return
+
+    localStorage.setItem("chatWith", groupId)
+    localStorage.setItem("callType", "receiver")
+
+    window.location.href = "/groupvideocall.html"
+})
         socket.on("call-answered", async ({ answer }) => {
             await peerConnection.setRemoteDescription(
                 new RTCSessionDescription(answer)
