@@ -182,8 +182,8 @@
             card.id = "user-" + user.email
 
             const dp = user.profileimage
-                ? "/" + user.profileimage
-                : "/uploads/profilephotodefault.png"
+                ? user.profileimage
+                : "/profilephotodefault.png"
 
             card.innerHTML = `
         <img src="${dp}">
