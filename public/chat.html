@@ -17,7 +17,7 @@
         <div class="top-bar">
             <div class="left-side" id="contactInfoBtn">
                 <i class="fa-solid fa-arrow-left" id="back_button"></i>
-                <img src="uploads/profilephotodefault.png" class="chat-dp">
+                <img src="/profilephotodefault.png" class="chat-dp">
                 <div class="contact-info">
                     <strong id="chatName">Sample Name</strong>
                     <div class="timestamp">online</div>
@@ -243,6 +243,13 @@
                 body: formData
             })
 
+            if (!res.ok) {
+                const text = await res.text()
+                console.error("Upload failed:", text)
+                alert("File upload failed")
+                return
+            }
+
             const msgObj = await res.json()
 
             /* ---- REMOVE TEMP MESSAGE ---- */
@@ -251,7 +258,7 @@
 
             /* ---- SHOW REAL MESSAGE ---- */
 
-            addMessage(msgObj, "sent")
+            // addMessage(msgObj, "sent")
 
             chatBody.scrollTop = chatBody.scrollHeight
 
@@ -334,11 +341,11 @@
             //         ? "/" + data.profileimage
             //         : "uploads/profilephotodefault.png"
             if (data.profileimage) {
-                document.querySelector(".chat-dp").src = "/" + data.profileimage
+                document.querySelector(".chat-dp").src = data.profileimage
             } else if (isGroup) {
-                document.querySelector(".chat-dp").src = "uploads/groupdefault.png"
+                document.querySelector(".chat-dp").src = "/groupdefault.png"
             } else {
-                document.querySelector(".chat-dp").src = "uploads/profilephotodefault.png"
+                document.querySelector(".chat-dp").src = "/profilephotodefault.png"
             }
 
             chatBody.innerHTML = ""
@@ -668,7 +675,7 @@
 
             if (msgObj.type === "image") {
                 content = `
-    <img src="/${msgObj.message}" 
+    <img src="${msgObj.message}" 
          style="max-width:200px;border-radius:10px;cursor:pointer;"
          onclick="openImageModal('${msgObj.message}')">
 `
@@ -696,8 +703,19 @@
                 else if (ext === "xls" || ext === "xlsx") icon = "📈"
                 else if (ext === "zip") icon = "🗜️"
 
+                let fileUrl = msgObj.message
+
+                // 🔥 IMPORTANT FIX FOR PDF
+                if (ext === "pdf") {
+
+                    // 🔥 FIX RESOURCE TYPE + INLINE VIEW
+                    fileUrl = msgObj.message
+                        .replace("/image/upload/", "/raw/upload/")
+                        .replace("/upload/", "/upload/fl_inline/")
+                }
+
                 content = `
-        <a href="${msgObj.message}" target="_blank" 
+        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer"
            style="text-decoration:none;color:#075E54;font-weight:bold;">
             ${icon} ${fileName}
         </a>
