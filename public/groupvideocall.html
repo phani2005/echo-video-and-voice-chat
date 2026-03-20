@@ -165,6 +165,11 @@ async function startGroupCall() {
 
     groupMembers = data.members
     document.getElementById("groupName").innerText = data.groupName
+    socket.emit("group-call", {
+        groupId,
+        from: loggedUser,
+        type: "video"
+    })
 
     // ✅ JOIN ROOM (IMPORTANT)
     socket.emit("join-group-call", {
