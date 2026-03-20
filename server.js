@@ -1,7 +1,7 @@
 import express from "express"
 import mongoose from "mongoose"
 import multer from "multer"
-import nodemailer from "nodemailer"
+// import nodemailer from "nodemailer"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { type } from "os"
@@ -264,12 +264,19 @@ app.post("/resetpassword", async (req, res) => {
     tempUser = {
         password: newpassword
     }
+    try {
     await resend.emails.send({
-    from: "onboarding@resend.dev",
-    to: email,
-    subject: "Password reset OTP",
-    html: `<h2>Your OTP is: ${generatedOTP}</h2>`
-})
+        from: "onboarding@resend.dev",
+        to: email,
+        subject: "Password reset OTP",
+        html: `<h2>Your OTP is: ${generatedOTP}</h2>`
+    })
+
+    console.log("RESET EMAIL SENT")
+
+} catch (err) {
+    console.log("RESET MAIL ERROR:", err)
+}
     res.redirect("/otp.html")
 })
 //Group creation
@@ -509,7 +516,16 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
 
     const { from, to, type, isGroup } = req.body
 
-    const fileUrl = req.file.path   // ✅ CLOUDINARY URL
+    let fileUrl = ""
+
+if (req.file) {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "chat-app"
+    })
+
+    fileUrl = result.secure_url
+    fs.unlinkSync(req.file.path)
+}
 
     let newMessage
 
