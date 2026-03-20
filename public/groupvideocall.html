@@ -171,13 +171,13 @@
 
             document.getElementById("groupName").innerText = data.groupName
 
-            groupMembers.forEach(member => {
+            // groupMembers.forEach(member => {
 
-                if (member.email === loggedUser) return
+            //     if (member.email === loggedUser) return
 
-                createPeer(member.email, true)
+            //     createPeer(member.email, true)
 
-            })
+            // })
 
         }
 
@@ -219,6 +219,7 @@
         }
 
         function createPeer(userEmail, initiator, signal = null) {
+            if (peers[userEmail]) return
 
             const peer = new SimplePeer({
                 initiator,
@@ -325,11 +326,13 @@
         }
         socket.on("user-joined-call", ({ user }) => {
 
-            if (user === loggedUser) return
+    if (user === loggedUser) return
 
-            createPeer(user, true)
+    if (!peers[user]) {
+        createPeer(user, true)
+    }
 
-        })
+})
 
         function toggleCamera() {
 
