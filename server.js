@@ -10,6 +10,8 @@ import cors from "cors"
 import { v2 as cloudinary } from "cloudinary"
 import { CloudinaryStorage } from "multer-storage-cloudinary"
 import fs from "fs"
+import dns from "dns"
+dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
 const app = express()
 app.use(cors())
@@ -114,6 +116,9 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
     }
 })
 let tempUser = {}
@@ -163,17 +168,18 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
         // ✅ send OTP (don't crash if fails)
         try {
-            transporter.sendMail({
-                from: process.env.EMAIL_USER,
-                to: email,
-                subject: "OTP Verification",
-                text: "Your OTP is: " + generatedOTP
-            })
-             .then(info => console.log("EMAIL SENT:", info.response))
-             .catch(err => console.log("MAIL ERROR:", err.message))
-        } catch (err) {
-            console.log("MAIL ERROR:", err.message)
-        }
+        const info = await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "OTP Verification",
+        text: "Your OTP is: " + generatedOTP
+    })
+
+    console.log("EMAIL SENT:", info.response)
+
+} catch (err) {
+    console.log("MAIL ERROR FULL:", err)
+}
 
         res.json({ success: true })  // 🔥 IMPORTANT
 
