@@ -157,29 +157,26 @@
 
         async function startGroupCall() {
 
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            })
+    localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    })
 
-            addLocalVideo()
+    addLocalVideo()
 
-            const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
-            const data = await res.json()
+    const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
+    const data = await res.json()
 
-            groupMembers = data.members
+    groupMembers = data.members
 
-            document.getElementById("groupName").innerText = data.groupName
+    document.getElementById("groupName").innerText = data.groupName
 
-            // groupMembers.forEach(member => {
-
-            //     if (member.email === loggedUser) return
-
-            //     createPeer(member.email, true)
-
-            // })
-
-        }
+    // 🔥 ADD THIS
+    socket.emit("join-group-call", {
+        groupId,
+        user: loggedUser
+    })
+}
 
         function addLocalVideo() {
 
@@ -204,8 +201,8 @@
             card.className = "user-card"
 
             const dp = user.profileimage
-                ? "/" + user.profileimage
-                : "/uploads/profilephotodefault.png"
+                ? user.profileimage
+                : "/profilephotodefault.png"
 
             card.innerHTML = `
 <video autoplay></video>
