@@ -120,220 +120,199 @@
 
     <script>
 
-        const socket = io(window.location.origin, { transports: ["websocket"] })
+const socket = io(window.location.origin, { transports: ["websocket"] })
 
-        const loggedUser = localStorage.getItem("loggedUser")
-        const groupId = localStorage.getItem("chatWith")
-        const usersGrid = document.getElementById("usersGrid")
-        let groupMembers = {}
+const loggedUser = localStorage.getItem("loggedUser")
+const groupId = localStorage.getItem("chatWith")
+const usersGrid = document.getElementById("usersGrid")
 
-        socket.emit("register-user", loggedUser)
+let groupMembers = []
+let peers = {}
+let localStream
 
-        let peers = {}
-        let localStream
+let seconds = 0
+let timerInterval
+let isMuted = false
 
-        let seconds = 0
-        let timerInterval
-        let isMuted = false
+socket.emit("register-user", loggedUser)
 
-        function startTimer() {
+function startTimer() {
+    timerInterval = setInterval(() => {
+        seconds++
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
 
-            timerInterval = setInterval(() => {
+        document.getElementById("callTimer").innerText =
+            String(mins).padStart(2, "0") + ":" +
+            String(secs).padStart(2, "0")
+    }, 1000)
+}
 
-                seconds++
+async function startGroupCall() {
 
-                const mins = Math.floor(seconds / 60)
-                const secs = seconds % 60
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-                document.getElementById("callTimer").innerText =
-                    String(mins).padStart(2, "0") + ":" +
-                    String(secs).padStart(2, "0")
+    const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
+    const data = await res.json()
 
-            }, 1000)
+    groupMembers = data.members
+    document.getElementById("groupName").innerText = data.groupName
 
-        }
+    // 🔥 NOTIFY ALL USERS (POPUP)
+    socket.emit("group-call", {
+        groupId,
+        from: loggedUser,
+        type: "voice"
+    })
 
-        async function startGroupCall() {
+    // 🔥 JOIN ROOM
+    socket.emit("join-group-call", {
+        groupId,
+        user: loggedUser
+    })
+}
 
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+function addUserToUI(user) {
 
-            const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
-            const data = await res.json()
+    if (document.getElementById("user-" + user.email)) return
 
-            const members = data.members
-            groupMembers = members
+    const card = document.createElement("div")
+    card.className = "user-card"
+    card.id = "user-" + user.email
 
-            document.getElementById("groupName").innerText = data.groupName
+    const dp = user.profileimage
+        ? user.profileimage
+        : "/profilephotodefault.png"
 
-            members.forEach(member => {
-
-                if (member.email === loggedUser) return
-
-                createPeer(member.email, true)
-
-            })
-
-        }
-        function addUserToUI(user) {
-            if (document.getElementById("user-" + user.email)) return
-
-            const card = document.createElement("div")
-            card.className = "user-card"
-            card.id = "user-" + user.email
-
-            const dp = user.profileimage
-                ? user.profileimage
-                : "/profilephotodefault.png"
-
-            card.innerHTML = `
+    card.innerHTML = `
         <img src="${dp}">
         <div class="user-name">${user.name}</div>
     `
 
-            usersGrid.appendChild(card)
-        }
+    usersGrid.appendChild(card)
+}
 
-        function createPeer(userEmail, initiator, signal = null) {
+function createPeer(userEmail, initiator, signal = null) {
 
-            const peer = new SimplePeer({
-                initiator,
-                trickle: false,
-                stream: localStream
-            })
+    if (peers[userEmail]) return
 
-            peers[userEmail] = peer
+    const peer = new SimplePeer({
+        initiator,
+        trickle: false,
+        stream: localStream
+    })
 
-            peer.on("signal", data => {
+    peers[userEmail] = peer
 
-                if (initiator) {
+    peer.on("signal", data => {
 
-                    socket.emit("call-user", {
-                        to: userEmail,
-                        offer: data,
-                        from: loggedUser,
-                        type: "voice"
-                    })
+        if (initiator) {
 
-                } else {
-
-                    socket.emit("answer-call", {
-                        to: userEmail,
-                        answer: data
-                    })
-
-                }
-
-            })
-
-            peer.on("stream", stream => {
-
-                console.log("Remote audio received")
-                const user = groupMembers.find(m => m.email === userEmail)
-                if (user) {
-                    addUserToUI(user)
-                }
-
-                const audio = document.createElement("audio")
-
-                audio.srcObject = stream
-                audio.autoplay = true
-                audio.controls = true
-
-                document.body.appendChild(audio)
-
-                if (!timerInterval) {
-                    startTimer()
-                }
-
-            })
-
-            if (signal) peer.signal(signal)
-
-        }
-
-        socket.on("incoming-call", ({ from, offer, type }) => {
-
-            if (type !== "voice") return
-
-            if (!localStream) {
-
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-
-                        localStream = stream
-
-                        createPeer(from, false, offer)
-
-                    })
-
-            } else {
-
-                createPeer(from, false, offer)
-
-            }
-
-        })
-
-        socket.on("call-answered", ({ from, answer }) => {
-
-            if (peers[from]) {
-                peers[from].signal(answer)
-            }
-
-        })
-
-        socket.on("call-ended", () => {
-
-            alert("Call ended")
-
-            window.location.href = "/chat.html"
-
-        })
-
-        function toggleMute() {
-
-            if (!localStream) return
-
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = isMuted
-            })
-
-            isMuted = !isMuted
-
-            document.getElementById("muteBtn").innerText =
-                isMuted ? "Unmute" : "Mute"
-
-        }
-
-        function endCall() {
-
-            socket.emit("end-call", {
-                to: groupId,
+            socket.emit("call-user", {
+                to: userEmail,
+                offer: data,
                 from: loggedUser,
-                type: "voice",
-                duration: seconds
+                type: "voice"
             })
 
-            Object.values(peers).forEach(p => p.destroy())
+        } else {
 
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop())
-            }
-
-            clearInterval(timerInterval)
-
-            window.location.href = "/chat.html"
-
+            socket.emit("answer-call", {
+                to: userEmail,
+                answer: data
+            })
         }
+    })
 
-        function goBack() {
-            window.location.href = "/chat.html"
-        }
+    peer.on("stream", stream => {
 
-        startGroupCall()
+        const user = groupMembers.find(m => m.email === userEmail)
+        if (user) addUserToUI(user)
 
-    </script>
+        const audio = document.createElement("audio")
+        audio.srcObject = stream
+        audio.autoplay = true
+        document.body.appendChild(audio)
 
+        if (!timerInterval) startTimer()
+    })
+
+    peer.on("close", () => delete peers[userEmail])
+    peer.on("error", () => delete peers[userEmail])
+
+    if (signal) peer.signal(signal)
+}
+
+/* 🔥 MAIN FIX (VERY IMPORTANT) */
+socket.on("user-joined-call", ({ user }) => {
+
+    if (user === loggedUser) return
+
+    createPeer(user, true)
+})
+
+socket.on("incoming-call", ({ from, offer, type }) => {
+
+    if (type !== "voice") return
+
+    createPeer(from, false, offer)
+})
+
+socket.on("call-answered", ({ from, answer }) => {
+
+    if (peers[from]) {
+        peers[from].signal(answer)
+    }
+})
+
+socket.on("call-ended", () => {
+
+    alert("Call ended")
+    window.location.href = "/chat.html"
+})
+
+function toggleMute() {
+
+    if (!localStream) return
+
+    localStream.getAudioTracks().forEach(track => {
+        track.enabled = isMuted
+    })
+
+    isMuted = !isMuted
+
+    document.getElementById("muteBtn").innerText =
+        isMuted ? "Unmute" : "Mute"
+}
+
+function endCall() {
+
+    socket.emit("end-call", {
+        to: groupId,
+        from: loggedUser,
+        type: "voice",
+        duration: seconds
+    })
+
+    Object.values(peers).forEach(p => p.destroy())
+
+    if (localStream) {
+        localStream.getTracks().forEach(t => t.stop())
+    }
+
+    clearInterval(timerInterval)
+
+    window.location.href = "/chat.html"
+}
+
+function goBack() {
+    endCall()
+}
+
+// START
+startGroupCall()
+
+</script>
 </body>
 
 </html>
