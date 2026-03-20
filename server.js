@@ -1,7 +1,7 @@
 import express from "express"
 import mongoose from "mongoose"
 import multer from "multer"
-// import nodemailer from "nodemailer"
+import nodemailer from "nodemailer"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { type } from "os"
@@ -102,30 +102,30 @@ const callSchema = new mongoose.Schema({
 })
 
 const Call = mongoose.model("Call", callSchema)
-// const storage = new CloudinaryStorage({
-//     cloudinary,
-//     params: async (req, file) => {
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
 
-//         console.log("Uploading file:", file.originalname)
+        let resourceType = "auto"   // 🔥 IMPORTANT
 
-//         return {
-//             folder: "chat-app",
-//             resource_type: "auto",
-//             public_id: Date.now().toString()
-//         }
-//     }
-// })
-const upload = multer({ dest: "temp/" })
-// const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASS
-//     },
-//     tls: {
-//         rejectUnauthorized: false
-//     }
-// })
+        return {
+            folder: "chat-app",
+            resource_type: resourceType
+        }
+    }
+})
+
+const upload = multer({ storage: storage })
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
+})
 let tempUser = {}
 let generatedOTP = ""
 let resetemail = ""
@@ -516,73 +516,66 @@ app.post("/deletecontact", async (req, res) => {
     res.json({ success: true })
 })
 app.post("/upload-message", upload.single("file"), async (req, res) => {
+    try {
 
-    const { from, to, type, isGroup } = req.body
+        if (!req.file) {
+            return res.status(400).json({ error: "File upload failed" })
+        }
 
-    let fileUrl = ""
+        const { from, to, type, isGroup } = req.body
 
-if (req.file) {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "chat-app"
-    })
+        const fileName = req.file.path
 
-    fileUrl = result.secure_url
-    fs.unlinkSync(req.file.path)
-}
+        let newMessage
 
-    let newMessage
+        if (isGroup === "true") {
 
-    if (isGroup === "true") {
+            newMessage = await Message.create({
+                from,
+                message: fileName,
+                type,
+                isGroup: true,
+                groupId: to
+            })
 
-        newMessage = await Message.create({
-            from,
-            message: fileUrl,
-            type,
-            isGroup: true,
-            groupId: to
-        })
+            const group = await Group.findById(to)
 
-        const group = await Group.findById(to)
+            for (let member of group.members) {
+                const memberSocket = onlineUsers[member]
+                if (memberSocket) {
+                    io.to(memberSocket).emit("receive-message", newMessage)
+                }
+            }
 
-        for (let member of group.members) {
-            const sockets = onlineUsers[member]
-            if (sockets) {
-                sockets.forEach(id => {
-                    io.to(id).emit("receive-message", newMessage)
-                })
+        } else {
+
+            newMessage = await Message.create({
+                from,
+                to,
+                message: fileName,
+                type
+            })
+
+            const receiverSocketId = onlineUsers[to]
+
+            if (receiverSocketId) {
+                newMessage.delivered = true
+                await newMessage.save()
+                io.to(receiverSocketId).emit("receive-message", newMessage)
+            }
+
+            const senderSocketId = onlineUsers[from]
+            if (senderSocketId) {
+                io.to(senderSocketId).emit("receive-message", newMessage)
             }
         }
 
-    } else {
+        res.json(newMessage)
 
-        newMessage = await Message.create({
-            from,
-            to,
-            message: fileUrl,
-            type
-        })
-
-        const receiverSockets = onlineUsers[to]
-
-        if (receiverSockets) {
-            newMessage.delivered = true
-            await newMessage.save()
-
-            receiverSockets.forEach(id => {
-                io.to(id).emit("receive-message", newMessage)
-            })
-        }
-
-        const senderSockets = onlineUsers[from]
-
-        if (senderSockets) {
-            senderSockets.forEach(id => {
-                io.to(id).emit("receive-message", newMessage)
-            })
-        }
+    } catch (error) {
+        console.error("Upload error:", error)
+        res.status(500).json({ error: "Upload failed" })
     }
-
-    res.json(newMessage)
 })
 app.post("/toggle-block", async (req, res) => {
     const { userEmail, targetEmail } = req.body
