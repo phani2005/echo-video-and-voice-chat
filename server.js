@@ -173,11 +173,11 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
         // ✅ send OTP (don't crash if fails)
        try {
-    const response = await resend.emails.send({
-        from: "onboarding@resend.dev",
+    await transporter.sendMail({
+        from: "phani005.setty@gmail.com",
         to: email,
-        subject: "OTP Verification",
-        html: `<h2>Your OTP is: ${generatedOTP}</h2>`
+        subject: "Your OTP verfication",
+        text: "Your OTP is: " + generatedOTP
     })
 
     console.log("EMAIL SENT:", response)
