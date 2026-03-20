@@ -162,6 +162,11 @@ async function startGroupCall() {
     // ✅ SHOW YOURSELF
     const me = groupMembers.find(m => m.email === loggedUser)
     if (me) addUserToUI(me)
+    socket.emit("group-call", {
+    groupId,
+    from: loggedUser,
+    type: "voice"
+})
 
     // 🔥 JOIN ROOM (KEY FIX FOR B ↔ C)
     socket.emit("join-group-call", {
