@@ -11,8 +11,10 @@ import { v2 as cloudinary } from "cloudinary"
 import { CloudinaryStorage } from "multer-storage-cloudinary"
 import fs from "fs"
 import dns from "dns"
+import {Resend} from "resend"
 dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
+const resend = new Resend(process.env.RESEND_API_KEY)
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -111,16 +113,16 @@ const Call = mongoose.model("Call", callSchema)
 //     }
 // })
 const upload = multer({ dest: "temp/" })
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-})
+// const transporter = nodemailer.createTransport({
+//     service: "gmail",
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS
+//     },
+//     tls: {
+//         rejectUnauthorized: false
+//     }
+// })
 let tempUser = {}
 let generatedOTP = ""
 let resetemail = ""
@@ -167,18 +169,18 @@ app.post("/register", upload.single("photo"), async (req, res) => {
         console.log("TEMP USER:", tempUser)
 
         // ✅ send OTP (don't crash if fails)
-        try {
-        const info = await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+       try {
+    const response = await resend.emails.send({
+        from: "onboarding@resend.dev",
         to: email,
         subject: "OTP Verification",
-        text: "Your OTP is: " + generatedOTP
+        html: `<h2>Your OTP is: ${generatedOTP}</h2>`
     })
 
-    console.log("EMAIL SENT:", info.response)
+    console.log("EMAIL SENT:", response)
 
 } catch (err) {
-    console.log("MAIL ERROR FULL:", err)
+    console.log("RESEND ERROR:", err)
 }
 
         res.json({ success: true })  // 🔥 IMPORTANT
@@ -262,12 +264,12 @@ app.post("/resetpassword", async (req, res) => {
     tempUser = {
         password: newpassword
     }
-    await transporter.sendMail({
-        from: "phani005.setty@gmail.com",
-        to: email,
-        subject: "Password reset otp",
-        text: "Your otp is: " + generatedOTP
-    })
+    await resend.emails.send({
+    from: "onboarding@resend.dev",
+    to: email,
+    subject: "Password reset OTP",
+    html: `<h2>Your OTP is: ${generatedOTP}</h2>`
+})
     res.redirect("/otp.html")
 })
 //Group creation
