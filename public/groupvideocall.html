@@ -164,20 +164,7 @@ socket.on("incoming-call", ({ from, offer, type }) => {
 /* 🔥 NEW GROUP CALL POPUP (IMPORTANT FIX) */
 /* ===================================== */
 
-socket.on("incoming-group-call", ({ from, groupId }) => {
 
-    // ❗ SAME CONFIRM POPUP (NO STYLE CHANGE)
-    const accept = confirm(`Group video call from ${from}`)
-
-    if (!accept) return
-
-    // 🔥 store group info
-    localStorage.setItem("chatWith", groupId)
-    localStorage.setItem("callType", "receiver")
-
-    // 🔥 redirect to group call page
-    window.location.href = "/groupvideocall.html"
-})
 
 /* ============================= */
 /* OTHER EXISTING CODE (UNCHANGED) */
