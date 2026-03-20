@@ -34,9 +34,12 @@ const io = new Server(httpServer, {
     }
 })
 const PORT=process.env.PORT||5000
-mongoose.connect(process.env.MONGO_URL)
-    .then(() => { console.log("Mongodb is connected successfully") })
-    .catch((e) => { console.log(e) })
+try {
+    await mongoose.connect(process.env.MONGO_URL)
+    console.log("Mongodb is connected successfully")
+} catch (err) {
+    console.log("MONGO ERROR:", err)
+}
 const onlineUsers = {}//online users object
 const userschema = new mongoose.Schema({
     username: String,
