@@ -110,17 +110,11 @@ const Call = mongoose.model("Call", callSchema)
 // })
 const upload = multer({ dest: "temp/" })
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // TLS
+    service: "gmail",
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    },
-    family: 4 // 🔥 FORCE IPv4 (IMPORTANT)
+    }
 })
 let tempUser = {}
 let generatedOTP = ""
@@ -169,12 +163,14 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
         // ✅ send OTP (don't crash if fails)
         try {
-            await transporter.sendMail({
+            transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: email,
                 subject: "OTP Verification",
                 text: "Your OTP is: " + generatedOTP
             })
+             .then(info => console.log("EMAIL SENT:", info.response))
+             .catch(err => console.log("MAIL ERROR:", err.message))
         } catch (err) {
             console.log("MAIL ERROR:", err.message)
         }
