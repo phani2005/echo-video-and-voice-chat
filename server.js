@@ -9,6 +9,7 @@ import dotenv from "dotenv"
 import cors from "cors"
 import { v2 as cloudinary } from "cloudinary"
 import { CloudinaryStorage } from "multer-storage-cloudinary"
+import fs from "fs"
 dotenv.config()
 const app = express()
 app.use(cors())
@@ -94,20 +95,20 @@ const callSchema = new mongoose.Schema({
 })
 
 const Call = mongoose.model("Call", callSchema)
-const storage = new CloudinaryStorage({
-    cloudinary,
-    params: async (req, file) => {
+// const storage = new CloudinaryStorage({
+//     cloudinary,
+//     params: async (req, file) => {
 
-        console.log("Uploading file:", file.originalname)
+//         console.log("Uploading file:", file.originalname)
 
-        return {
-            folder: "chat-app",
-            resource_type: "auto",
-            public_id: Date.now().toString()
-        }
-    }
-})
-const upload = multer({ storage })
+//         return {
+//             folder: "chat-app",
+//             resource_type: "auto",
+//             public_id: Date.now().toString()
+//         }
+//     }
+// })
+const upload = multer({ dest: "temp/" })
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -136,16 +137,37 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
         generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
 
+        let imageUrl = ""
+
+        // ✅ Upload to cloudinary manually
+        if (req.file) {
+            try {
+                const result = await cloudinary.uploader.upload(req.file.path, {
+                    folder: "chat-app"
+                })
+
+                imageUrl = result.secure_url
+
+                // delete temp file
+                fs.unlinkSync(req.file.path)
+
+                console.log("CLOUDINARY URL:", imageUrl)
+
+            } catch (err) {
+                console.log("CLOUDINARY ERROR:", err.message)
+            }
+        }
+
         tempUser = {
             username,
             email,
             password,
-            profileimage: req.file ? req.file.path : ""
+            profileimage: imageUrl
         }
 
         console.log("TEMP USER:", tempUser)
 
-        // 🔥 TRY sending mail but DON'T CRASH if fails
+        // ✅ send OTP (don't crash if fails)
         try {
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
@@ -153,12 +175,11 @@ app.post("/register", upload.single("photo"), async (req, res) => {
                 subject: "OTP Verification",
                 text: "Your OTP is: " + generatedOTP
             })
-            console.log("Email sent")
-        } catch (mailErr) {
-            console.log("MAIL ERROR:", mailErr.message)
+        } catch (err) {
+            console.log("MAIL ERROR:", err.message)
         }
 
-        res.json({ success: true }) // ✅ ALWAYS RESPOND
+        res.json({ success: true })  // 🔥 IMPORTANT
 
     } catch (err) {
         console.log("REGISTER ERROR:", err)
