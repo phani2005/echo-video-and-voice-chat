@@ -158,7 +158,11 @@ async function startGroupCall() {
     groupMembers = data.members
     document.getElementById("groupName").innerText = data.groupName
 
-    // 🔥 NOTIFY ALL USERS (POPUP)
+    // ✅ ADD YOURSELF TO UI
+    const me = groupMembers.find(m => m.email === loggedUser)
+    if (me) addUserToUI(me)
+
+    // 🔥 NOTIFY USERS
     socket.emit("group-call", {
         groupId,
         from: loggedUser,
