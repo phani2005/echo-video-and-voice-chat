@@ -300,10 +300,6 @@ peer.on("error", () => {
         createPeer(from, false, offer)
 
         // 🔥 ADD THIS
-        socket.emit("join-group-call", {
-            groupId,
-            user: loggedUser
-        })
     }
 
 })
