@@ -1,7 +1,7 @@
 import express from "express"
 import mongoose from "mongoose"
 import multer from "multer"
-import nodemailer from "nodemailer"
+// import nodemailer from "nodemailer"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { type } from "os"
@@ -11,10 +11,10 @@ import { v2 as cloudinary } from "cloudinary"
 import { CloudinaryStorage } from "multer-storage-cloudinary"
 import fs from "fs"
 import dns from "dns"
-import {Resend} from "resend"
+// import {Resend} from "resend"
 dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
-const resend = new Resend(process.env.RESEND_API_KEY)
+// const resend = new Resend(process.env.RESEND_API_KEY)
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -116,16 +116,6 @@ const storage = new CloudinaryStorage({
 })
 
 const upload = multer({ storage: storage })
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-})
 let tempUser = {}
 let generatedOTP = ""
 let resetemail = ""
@@ -136,87 +126,56 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 
         const existingUser = await User.findOne({ email })
         if (existingUser) {
-            return res.json({ success: false, message: "User exists" })
+            return res.json({ success: false, message: "User already exists" })
         }
-
-        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
 
         let imageUrl = ""
 
-        // ✅ Upload to cloudinary manually
+        // Upload to cloudinary
         if (req.file) {
-            try {
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: "chat-app"
-                })
-
-                imageUrl = result.secure_url
-
-                // delete temp file
-                fs.unlinkSync(req.file.path)
-
-                console.log("CLOUDINARY URL:", imageUrl)
-
-            } catch (err) {
-                console.log("CLOUDINARY ERROR:", err.message)
-            }
+            imageUrl = req.file.path   // already cloudinary URL
         }
 
-        tempUser = {
+        await User.create({
             username,
             email,
             password,
             profileimage: imageUrl
-        }
+        })
 
-        console.log("TEMP USER:", tempUser)
+        console.log("USER REGISTERED:", email)
 
-        // ✅ send OTP (don't crash if fails)
-       try {
-    await transporter.sendMail({
-        from: "phani005.setty@gmail.com",
-        to: email,
-        subject: "Your OTP verfication",
-        text: "Your OTP is: " + generatedOTP
-    })
-
-    console.log("EMAIL SENT:", response)
-
-} catch (err) {
-    console.log("RESEND ERROR:", err)
-}
-
-        res.json({ success: true })  // 🔥 IMPORTANT
+        res.json({ success: true })
 
     } catch (err) {
         console.log("REGISTER ERROR:", err)
         res.json({ success: false, message: "Server error" })
     }
 })
-app.post("/verify-otp", async (req, res) => {
-    const { otp } = req.body
-    if (otp == generatedOTP) {
-        if (tempUser.email) {
-            await User.create(tempUser)
-            tempUser = {}
-        }
-        if (resetemail) {
-            await User.updateOne(
-                { email: resetemail },
-                { password: tempUser.password }
-            )
-            resetemail = ""
-        }
-        generatedOTP = ""
-        return res.redirect("/login.html")
-    } else {
-        res.send(`
-            <script>
-               alert("Invalid OTP")
-               window.location.href="/otp.html"
-            </script>`)
-    }
-})
+// app.post("/verify-otp", async (req, res) => {
+//     const { otp } = req.body
+//     if (otp == generatedOTP) {
+//         if (tempUser.email) {
+//             await User.create(tempUser)
+//             tempUser = {}
+//         }
+//         if (resetemail) {
+//             await User.updateOne(
+//                 { email: resetemail },
+//                 { password: tempUser.password }
+//             )
+//             resetemail = ""
+//         }
+//         generatedOTP = ""
+//         return res.redirect("/login.html")
+//     } else {
+//         res.send(`
+//             <script>
+//                alert("Invalid OTP")
+//                window.location.href="/otp.html"
+//             </script>`)
+//     }
+// })
 app.post("/login", async (req, res) => {
     try {
 
@@ -245,43 +204,43 @@ app.get("/", (req, res) => {
 app.get("/login", (req,res)=>{
     res.redirect("/login.html")
 })
-app.post("/resetpassword", async (req, res) => {
-    const { email, newpassword, newpasswordagain } = req.body
-    const user = await User.findOne({ email })
-    if (!user) {
-        return res.send(`
-            <script>
-                alert("Incorrect email")
-                window.location.href="/newpassword.html"
-            </script>`)
-    }
-    if (newpassword != newpasswordagain) {
-        return res.send(`
-            <script>
-                alert("Passwords doesn't match")
-                window.location.href="/newpassword.html"
-            </script>`)
-    }
-    generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
-    resetemail = email
-    tempUser = {
-        password: newpassword
-    }
-    try {
-    await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: email,
-        subject: "Password reset OTP",
-        html: `<h2>Your OTP is: ${generatedOTP}</h2>`
-    })
+// app.post("/resetpassword", async (req, res) => {
+//     const { email, newpassword, newpasswordagain } = req.body
+//     const user = await User.findOne({ email })
+//     if (!user) {
+//         return res.send(`
+//             <script>
+//                 alert("Incorrect email")
+//                 window.location.href="/newpassword.html"
+//             </script>`)
+//     }
+//     if (newpassword != newpasswordagain) {
+//         return res.send(`
+//             <script>
+//                 alert("Passwords doesn't match")
+//                 window.location.href="/newpassword.html"
+//             </script>`)
+//     }
+//     generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
+//     resetemail = email
+//     tempUser = {
+//         password: newpassword
+//     }
+//     try {
+//     await resend.emails.send({
+//         from: "onboarding@resend.dev",
+//         to: email,
+//         subject: "Password reset OTP",
+//         html: `<h2>Your OTP is: ${generatedOTP}</h2>`
+//     })
 
-    console.log("RESET EMAIL SENT")
+//     console.log("RESET EMAIL SENT")
 
-} catch (err) {
-    console.log("RESET MAIL ERROR:", err)
-}
-    res.redirect("/otp.html")
-})
+// } catch (err) {
+//     console.log("RESET MAIL ERROR:", err)
+// }
+//     res.redirect("/otp.html")
+// })
 //Group creation
 app.post("/create-group", upload.single("photo"), async (req, res) => {
 
