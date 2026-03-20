@@ -150,6 +150,7 @@ function startTimer() {
 
 async function startGroupCall() {
 
+    // 🎤 ONLY AUDIO (NO VIDEO)
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
     const res = await fetch(`/group-members/${groupId}/${loggedUser}`)
@@ -158,18 +159,11 @@ async function startGroupCall() {
     groupMembers = data.members
     document.getElementById("groupName").innerText = data.groupName
 
-    // ✅ ADD YOURSELF TO UI
+    // ✅ SHOW YOURSELF
     const me = groupMembers.find(m => m.email === loggedUser)
     if (me) addUserToUI(me)
 
-    // 🔥 NOTIFY USERS
-    socket.emit("group-call", {
-        groupId,
-        from: loggedUser,
-        type: "voice"
-    })
-
-    // 🔥 JOIN ROOM
+    // 🔥 JOIN ROOM (KEY FIX FOR B ↔ C)
     socket.emit("join-group-call", {
         groupId,
         user: loggedUser
@@ -236,6 +230,7 @@ function createPeer(userEmail, initiator, signal = null) {
         const audio = document.createElement("audio")
         audio.srcObject = stream
         audio.autoplay = true
+
         document.body.appendChild(audio)
 
         if (!timerInterval) startTimer()
@@ -247,7 +242,7 @@ function createPeer(userEmail, initiator, signal = null) {
     if (signal) peer.signal(signal)
 }
 
-/* 🔥 MAIN FIX (VERY IMPORTANT) */
+/* 🔥 MAIN FIX (B ↔ C CONNECTION) */
 socket.on("user-joined-call", ({ user }) => {
 
     if (user === loggedUser) return
@@ -255,6 +250,7 @@ socket.on("user-joined-call", ({ user }) => {
     createPeer(user, true)
 })
 
+/* 🔥 RECEIVE CALL */
 socket.on("incoming-call", ({ from, offer, type }) => {
 
     if (type !== "voice") return
@@ -262,6 +258,7 @@ socket.on("incoming-call", ({ from, offer, type }) => {
     createPeer(from, false, offer)
 })
 
+/* 🔥 ANSWER */
 socket.on("call-answered", ({ from, answer }) => {
 
     if (peers[from]) {
@@ -269,6 +266,7 @@ socket.on("call-answered", ({ from, answer }) => {
     }
 })
 
+/* 🔥 END */
 socket.on("call-ended", () => {
 
     alert("Call ended")
@@ -313,7 +311,7 @@ function goBack() {
     endCall()
 }
 
-// START
+// START CALL
 startGroupCall()
 
 </script>
