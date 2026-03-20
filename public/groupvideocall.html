@@ -263,6 +263,13 @@
             })
 
             if (signal) peer.signal(signal)
+            peer.on("close", () => {
+    delete peers[userEmail]
+})
+
+peer.on("error", () => {
+    delete peers[userEmail]
+})
 
         }
 
