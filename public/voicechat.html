@@ -208,9 +208,9 @@ cursor:pointer;
         const dp = localStorage.getItem("chatDp")
 
         if (dp) {
-            document.getElementById("contactDp").src = "/" + dp
+            document.getElementById("contactDp").src = dp
         } else {
-            document.getElementById("contactDp").src = "/uploads/profilephotodefault.png"
+            document.getElementById("contactDp").src = "/profilephotodefault.png"
         }
 
         async function startVoiceCall() {
