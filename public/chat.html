@@ -474,10 +474,15 @@
         function downloadFile(url, filename) {
 
     fetch(url)
-        .then(res => res.blob())
-        .then(blob => {
+        .then(async res => {
 
-            const blobUrl = window.URL.createObjectURL(blob)
+            const contentType = res.headers.get("content-type") || "application/octet-stream"
+            const blob = await res.blob()
+
+            // 🔥 FIX: force correct type
+            const fixedBlob = new Blob([blob], { type: contentType })
+
+            const blobUrl = window.URL.createObjectURL(fixedBlob)
 
             const a = document.createElement("a")
             a.href = blobUrl
