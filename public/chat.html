@@ -651,93 +651,120 @@
             }
         }
         function addMessage(msgObj, type) {
+    insertDateDivider(msgObj.timestamp)
+    const msg = document.createElement("div")
+    msg.className = "message " + type
 
-            insertDateDivider(msgObj.timestamp)
-            const msg = document.createElement("div")
-            msg.className = "message " + type
-
-            let content = ""
-            let senderLabel = ""
-            if (isGroup && msgObj.from !== loggedUser) {
-
-                let senderName = msgObj.from
-
-                if (contactNames[msgObj.from]) {
-                    senderName = contactNames[msgObj.from]
-                }
-
-                senderLabel = `
-        <small style="color:#075E54;font-weight:bold">
-            ${senderName}
-        </small><br>
-    `
-            }
-
-            if (msgObj.type === "image") {
-                content = `
-    <img src="${msgObj.message}" 
-         style="max-width:200px;border-radius:10px;cursor:pointer;"
-         onclick="openImageModal('${msgObj.message}')">
-`
-            }
-            else if (msgObj.type === "video") {
-                content = `<video controls width="200">
-                     <source src="${msgObj.message}">
-                   </video>`
-            }
-            else if (msgObj.type === "audio") {
-                content = `<audio controls>
-                     <source src="${msgObj.message}">
-                   </audio>`
-            }
-            else if (msgObj.type === "file") {
-
-    const fileName = msgObj.message.split("/").pop()
-
-    content = `
-        <a href="${msgObj.message}" target="_blank"
-           style="text-decoration:none;color:#075E54;font-weight:bold;">
-            📎 ${fileName}
-        </a>
-    `
-}
-            else {
-                content = msgObj.message
-            }
-
-            let tick = ""
-
-            if (type === "sent") {
-                if (!msgObj.delivered) tick = "✓"
-                if (msgObj.delivered && !msgObj.seen) tick = "✓✓"
-                if (msgObj.seen) tick = `<span style="color:blue">✓✓</span>`
-            }
-
-            const time = formatTime(msgObj.timestamp)
-
-            msg.innerHTML = `
-            ${senderLabel}
-            ${content}
-                <span class="time">${time} ${tick}</span>
-            `
-            msg.setAttribute("data-id", msgObj._id)
-            if (selectMode) {
-                const checkbox = document.createElement("input")
-                checkbox.type = "checkbox"
-                checkbox.className = "msg-checkbox"
-
-                checkbox.addEventListener("change", () => {
-                    if (checkbox.checked)
-                        selectedMessages.add(msgObj._id)
-                    else
-                        selectedMessages.delete(msgObj._id)
-                })
-
-                msg.prepend(checkbox)
-            }
-            chatBody.appendChild(msg)
+    let content = ""
+    let senderLabel = ""
+    if (isGroup && msgObj.from !== loggedUser) {
+        let senderName = msgObj.from
+        if (contactNames[msgObj.from]) {
+            senderName = contactNames[msgObj.from]
         }
-        function openImageModal(src) {
+        senderLabel = `
+            <small style="color:#075E54;font-weight:bold">
+                ${senderName}
+            </small><br>
+        `
+    }
+
+    // ✅ PERFECT DOCUMENT HANDLING WITH ICONS
+    if (msgObj.type === "image") {
+        content = `
+            <img src="${msgObj.message}" 
+                 style="max-width:200px;border-radius:10px;cursor:pointer;"
+                 onclick="openImageModal('${msgObj.message}')">
+        `
+    }
+    else if (msgObj.type === "video") {
+        content = `<video controls style="max-width:200px;border-radius:10px;">
+             <source src="${msgObj.message}">
+           </video>`
+    }
+    else if (msgObj.type === "audio") {
+        content = `<audio controls style="max-width:200px;">
+             <source src="${msgObj.message}">
+           </audio>`
+    }
+    // ✅ DOCUMENT HANDLING WITH ICONS & PREVIEWS
+    else if (["pdf", "word", "excel", "powerpoint", "archive", "file"].includes(msgObj.type)) {
+        const fileName = msgObj.originalName || msgObj.message.split("/").pop()
+        const ext = fileName.split('.').pop().toLowerCase()
+        
+        // ✅ ICON MAPPING
+        let icon = "📎"
+        let preview = ""
+        
+        if (msgObj.type === "pdf" || ext === "pdf") {
+            icon = "📕"
+            preview = `
+                <iframe src="${msgObj.message}#toolbar=0&navpanes=0&scrollbar=0" 
+                        style="width:220px;height:150px;border-radius:8px;border:1px solid #ddd;margin-top:5px;"
+                        frameborder="0"></iframe>
+            `
+        } else if (["doc", "docx"].includes(ext)) {
+            icon = "📝"
+        } else if (["xls", "xlsx"].includes(ext)) {
+            icon = "📈"
+        } else if (["ppt", "pptx"].includes(ext)) {
+            icon = "📊"
+        } else if (["zip", "rar"].includes(ext)) {
+            icon = "🗜️"
+        }
+
+        content = `
+            <div style="max-width:250px;">
+                <div style="display:flex;align-items:center;padding:8px 12px;background:#f0f0f0;border-radius:12px;margin-bottom:5px;">
+                    <span style="font-size:24px;margin-right:10px;">${icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:500;color:#075E54;font-size:14px;">${fileName}</div>
+                        <div style="font-size:11px;color:#666;">${(msgObj.message.split('/').pop())}</div>
+                    </div>
+                </div>
+                ${preview}
+                <div style="text-align:center;">
+                    <a href="${msgObj.message}" target="_blank" download
+                       style="background:#25D366;color:white;padding:6px 12px;border-radius:20px;font-size:12px;text-decoration:none;font-weight:500;display:inline-block;margin-top:5px;">
+                        📥 Download
+                    </a>
+                </div>
+            </div>
+        `
+    }
+    else {
+        content = msgObj.message
+    }
+
+    let tick = ""
+    if (type === "sent") {
+        if (!msgObj.delivered) tick = "✓"
+        else if (msgObj.delivered && !msgObj.seen) tick = "✓✓"
+        else if (msgObj.seen) tick = `<span style="color:blue">✓✓</span>`
+    }
+
+    const time = formatTime(msgObj.timestamp)
+
+    msg.innerHTML = `
+        ${senderLabel}
+        ${content}
+        <span class="time">${time} ${tick}</span>
+    `
+    msg.setAttribute("data-id", msgObj._id)
+    
+    if (selectMode) {
+        const checkbox = document.createElement("input")
+        checkbox.type = "checkbox"
+        checkbox.className = "msg-checkbox"
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) selectedMessages.add(msgObj._id)
+            else selectedMessages.delete(msgObj._id)
+        })
+        msg.prepend(checkbox)
+    }
+    
+    chatBody.appendChild(msg)
+}        function openImageModal(src) {
             console.log("Image src: ", src)
             const modal = document.getElementById("imageModal")
             const modalImg = document.getElementById("modalImage")
