@@ -123,7 +123,15 @@ const storage = new CloudinaryStorage({
         }
         else if (file.mimetype.startsWith("image")) {
             resourceType = "image"
-        }else{
+        }else if (
+    file.mimetype === "application/pdf" ||
+    file.mimetype.includes("word") ||
+    file.mimetype.includes("officedocument") ||
+    file.mimetype === "text/plain"
+) {
+    resourceType = "raw"
+}
+        else{
             resourceType="auto"
         }
 
