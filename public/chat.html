@@ -682,10 +682,18 @@
 `
             }
             else if (msgObj.type === "video") {
-                content = `<video controls width="200" type="video/mp4">
-                     <source src="${msgObj.message}">
-                   </video>`
-            }
+
+    let videoUrl = msgObj.message
+
+    // 🔥 FIX cloudinary wrong path
+    videoUrl = videoUrl.replace("/image/upload/", "/video/upload/")
+
+    content = `
+    <video controls width="200">
+        <source src="${videoUrl}" type="video/mp4">
+    </video>
+    `
+}
             else if (msgObj.type === "audio") {
                 content = `<audio controls>
                      <source src="${msgObj.message}">
