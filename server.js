@@ -109,12 +109,20 @@ const storage = new CloudinaryStorage({
 
         let resourceType = "auto"
 
-        if (file.mimetype.startsWith("video")) {
-            resourceType = "video"
-        } else if (file.mimetype.startsWith("image")) {
-            resourceType = "image"
-        } else {
+        if (file.mimetype === "application/pdf") {
             resourceType = "raw"
+        }
+        else if (file.mimetype.includes("word") || file.mimetype.includes("officedocument")) {
+            resourceType = "raw"
+        }
+        else if (file.mimetype === "text/plain") {
+            resourceType = "raw"
+        }
+        else if (file.mimetype.startsWith("video")) {
+            resourceType = "video"
+        }
+        else if (file.mimetype.startsWith("image")) {
+            resourceType = "image"
         }
 
         return {
