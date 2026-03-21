@@ -106,12 +106,21 @@ const Call = mongoose.model("Call", callSchema)
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-
-        let resourceType = "auto"   // 🔥 IMPORTANT
-
+        let resourceType = "auto"
+        
+        // ✅ FIX FOR PDFs & DOCUMENTS
+        const fileExt = file.originalname.split('.').pop().toLowerCase()
+        if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt)) {
+            resourceType = "raw"  // ✅ CRITICAL: Use "raw" for documents
+        }
+        
         return {
             folder: "chat-app",
-            resource_type: resourceType
+            resource_type: resourceType,  // ✅ This fixes PDF access
+            format: fileExt,  // ✅ Ensure correct format
+            transformation: [
+                { resource_type: resourceType === "raw" ? "raw" : "auto" }
+            ]
         }
     }
 })
@@ -205,44 +214,7 @@ app.get("/", (req, res) => {
 app.get("/login", (req,res)=>{
     res.redirect("/login.html")
 })
-// app.post("/resetpassword", async (req, res) => {
-//     const { email, newpassword, newpasswordagain } = req.body
-//     const user = await User.findOne({ email })
-//     if (!user) {
-//         return res.send(`
-//             <script>
-//                 alert("Incorrect email")
-//                 window.location.href="/newpassword.html"
-//             </script>`)
-//     }
-//     if (newpassword != newpasswordagain) {
-//         return res.send(`
-//             <script>
-//                 alert("Passwords doesn't match")
-//                 window.location.href="/newpassword.html"
-//             </script>`)
-//     }
-//     generatedOTP = Math.floor(100000 + Math.random() * 900000).toString()
-//     resetemail = email
-//     tempUser = {
-//         password: newpassword
-//     }
-//     try {
-//     await resend.emails.send({
-//         from: "onboarding@resend.dev",
-//         to: email,
-//         subject: "Password reset OTP",
-//         html: `<h2>Your OTP is: ${generatedOTP}</h2>`
-//     })
 
-//     console.log("RESET EMAIL SENT")
-
-// } catch (err) {
-//     console.log("RESET MAIL ERROR:", err)
-// }
-//     res.redirect("/otp.html")
-// })
-//Group creation
 app.post("/create-group", upload.single("photo"), async (req, res) => {
 
     const { groupName, members, admin } = req.body
@@ -481,14 +453,13 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
             return res.status(400).json({ error: "File upload failed" })
         }
 
-        const { from, to, type, isGroup, originalName } = req.body  // ✅ ADD originalName
-
+        const { from, to, type, isGroup, originalName } = req.body
         const fileName = req.file.path
         const fileExtension = originalName ? originalName.split('.').pop().toLowerCase() : 'unknown'
 
-        // ✅ Determine specific document type
+        // ✅ BETTER DOCUMENT TYPE DETECTION
         let documentType = "file"
-        if (fileExtension === 'pdf') documentType = "pdf"
+        if (['pdf'].includes(fileExtension)) documentType = "pdf"
         else if (['doc', 'docx'].includes(fileExtension)) documentType = "word"
         else if (['xls', 'xlsx'].includes(fileExtension)) documentType = "excel"
         else if (['ppt', 'pptx'].includes(fileExtension)) documentType = "powerpoint"
@@ -498,28 +469,20 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
 
         if (isGroup === "true") {
             newMessage = await Message.create({
-                from,
-                message: fileName,
-                type: documentType,  // ✅ Use specific type
-                originalName: originalName,  // ✅ Store original filename
-                isGroup: true,
-                groupId: to
+                from, message: fileName, type: documentType,
+                originalName: originalName || fileExtension,
+                isGroup: true, groupId: to
             })
 
             const group = await Group.findById(to)
             for (let member of group.members) {
                 const memberSocket = onlineUsers[member]
-                if (memberSocket) {
-                    io.to(memberSocket).emit("receive-message", newMessage)
-                }
+                if (memberSocket) io.to(memberSocket).emit("receive-message", newMessage)
             }
         } else {
             newMessage = await Message.create({
-                from,
-                to,
-                message: fileName,
-                type: documentType,  // ✅ Use specific type
-                originalName: originalName,  // ✅ Store original filename
+                from, to, message: fileName, type: documentType,
+                originalName: originalName || fileExtension,
             })
 
             const receiverSocketId = onlineUsers[to]
@@ -530,9 +493,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
             }
 
             const senderSocketId = onlineUsers[from]
-            if (senderSocketId) {
-                io.to(senderSocketId).emit("receive-message", newMessage)
-            }
+            if (senderSocketId) io.to(senderSocketId).emit("receive-message", newMessage)
         }
 
         res.json(newMessage)
