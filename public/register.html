@@ -32,9 +32,19 @@ document.querySelector("form").addEventListener("submit", async function(e){
 
     e.preventDefault()
 
-    try {
+    const formData = new FormData(this)
 
-        const formData = new FormData(this)
+    const email = formData.get("email")
+
+    // ✅ Gmail validation
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/
+
+    if (!gmailRegex.test(email)) {
+        alert("Please enter a valid Gmail address (example@gmail.com)")
+        return
+    }
+
+    try {
 
         const res = await fetch("/register", {
             method: "POST",
@@ -55,7 +65,6 @@ document.querySelector("form").addEventListener("submit", async function(e){
     }
 })
 </script>
-
 </body>
    
 </html>
