@@ -471,6 +471,29 @@
 
         //     alert(data.blocked ? "User Blocked" : "User Unblocked")
         // })
+        function downloadFile(url, filename) {
+
+    fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+
+            const blobUrl = window.URL.createObjectURL(blob)
+
+            const a = document.createElement("a")
+            a.href = blobUrl
+            a.download = filename
+
+            document.body.appendChild(a)
+            a.click()
+
+            a.remove()
+            window.URL.revokeObjectURL(blobUrl)
+        })
+        .catch(err => {
+            console.error("Download error:", err)
+            alert("Download failed")
+        })
+}
         function sendMessage() {
 
             const text = input.value.trim()
@@ -710,42 +733,29 @@
     else if (ext === "doc" || ext === "docx") icon = "📝"
     else if (ext === "ppt" || ext === "pptx") icon = "📊"
     else if (ext === "xls" || ext === "xlsx") icon = "📈"
-    else if (ext === "zip") icon = "🗜️"
-
-    const fileUrl = msgObj.message
 
     content = `
-    <a href="${fileUrl}" download="${fileName}"
-       style="
-        display:flex;
-        align-items:center;
-        gap:10px;
-        padding:10px;
-        background:${type === "sent" ? "#dcf8c6" : "#fff"};
-        border-radius:10px;
-        text-decoration:none;
-        color:black;
-        max-width:230px;
-       ">
+    <div onclick="downloadFile('${msgObj.message}', '${fileName}')"
+         style="
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:10px;
+            background:${type === "sent" ? "#dcf8c6" : "#fff"};
+            border-radius:10px;
+            cursor:pointer;
+            max-width:230px;
+         ">
 
         <span style="font-size:22px">${icon}</span>
 
-        <div style="overflow:hidden;">
-            <div style="font-size:14px;
-                        white-space:nowrap;
-                        overflow:hidden;
-                        text-overflow:ellipsis;">
-                ${fileName}
-            </div>
-
-            <div style="font-size:12px;color:gray;">
-                ${ext.toUpperCase()}
-            </div>
+        <div>
+            <div style="font-size:14px;">${fileName}</div>
+            <div style="font-size:12px;color:gray;">${ext.toUpperCase()}</div>
         </div>
-
-    </a>
+    </div>
     `
-}            else {
+}           else {
                 content = msgObj.message
             }
 
