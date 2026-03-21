@@ -748,7 +748,12 @@
                      <source src="${msgObj.message}">
                    </audio>`
             }
-            else if (msgObj.type === "file" || msgObj.type === "pdf" || msgObj.type === "word" || msgObj.type === "text") {
+            else if (
+    msgObj.type === "file" ||
+    msgObj.type === "pdf" ||
+    msgObj.type === "word" ||
+    msgObj.type === "text"
+) {
 
     const fileName = msgObj.originalName || msgObj.message.split("/").pop()
     const ext = fileName.split(".").pop().toLowerCase()
@@ -761,25 +766,7 @@
     else if (ext === "xls" || ext === "xlsx") icon = "📈"
 
     content = `
-    <div onclick="
-    let url = '${msgObj.message}';
-    let ext = '${fileName}'.split('.').pop().toLowerCase();
-
-    if (ext === 'pdf') {
-
-    const link = document.createElement("a")
-    link.href = '${msgObj.message}'.replace('/upload/', '/upload/fl_attachment/')
-    link.download = fileName
-
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-
-    return
-}
-
-    downloadFile(url, '${fileName}');
-"
+    <div onclick="handleFileClick('${msgObj.message}', '${fileName}')"
          style="
             display:flex;
             align-items:center;
@@ -799,7 +786,7 @@
         </div>
     </div>
     `
-}           else {
+}         else {
                 content = msgObj.message
             }
 
