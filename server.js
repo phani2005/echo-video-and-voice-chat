@@ -449,43 +449,47 @@ app.post("/deletecontact", async (req, res) => {
 })
 app.post("/upload-message", upload.single("file"), async (req, res) => {
     try {
+
         if (!req.file) {
             return res.status(400).json({ error: "File upload failed" })
         }
 
-        const { from, to, type, isGroup, originalName } = req.body
-        const fileName = req.file.path
-        const fileExtension = originalName ? originalName.split('.').pop().toLowerCase() : 'unknown'
+        const { from, to, type, isGroup } = req.body
 
-        // ✅ BETTER DOCUMENT TYPE DETECTION
-        let documentType = "file"
-        if (['pdf'].includes(fileExtension)) documentType = "pdf"
-        else if (['doc', 'docx'].includes(fileExtension)) documentType = "word"
-        else if (['xls', 'xlsx'].includes(fileExtension)) documentType = "excel"
-        else if (['ppt', 'pptx'].includes(fileExtension)) documentType = "powerpoint"
-        else if (['zip', 'rar'].includes(fileExtension)) documentType = "archive"
+        const fileName = req.file.path
 
         let newMessage
 
         if (isGroup === "true") {
+
             newMessage = await Message.create({
-                from, message: fileName, type: documentType,
-                originalName: originalName || fileExtension,
-                isGroup: true, groupId: to
+                from,
+                message: fileName,
+                type,
+                isGroup: true,
+                groupId: to
             })
 
             const group = await Group.findById(to)
+
             for (let member of group.members) {
                 const memberSocket = onlineUsers[member]
-                if (memberSocket) io.to(memberSocket).emit("receive-message", newMessage)
+                if (memberSocket) {
+                    io.to(memberSocket).emit("receive-message", newMessage)
+                }
             }
+
         } else {
+
             newMessage = await Message.create({
-                from, to, message: fileName, type: documentType,
-                originalName: originalName || fileExtension,
+                from,
+                to,
+                message: fileName,
+                type
             })
 
             const receiverSocketId = onlineUsers[to]
+
             if (receiverSocketId) {
                 newMessage.delivered = true
                 await newMessage.save()
@@ -493,10 +497,13 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
             }
 
             const senderSocketId = onlineUsers[from]
-            if (senderSocketId) io.to(senderSocketId).emit("receive-message", newMessage)
+            if (senderSocketId) {
+                io.to(senderSocketId).emit("receive-message", newMessage)
+            }
         }
 
         res.json(newMessage)
+
     } catch (error) {
         console.error("Upload error:", error)
         res.status(500).json({ error: "Upload failed" })
