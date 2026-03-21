@@ -461,6 +461,29 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
         }
 
         const { from, to, type, isGroup, originalName } = req.body
+        let fileType = "file"
+
+if (req.file.mimetype === "application/pdf") {
+    fileType = "pdf"
+}
+else if (
+    req.file.mimetype.includes("word") ||
+    req.file.mimetype.includes("officedocument")
+) {
+    fileType = "word"
+}
+else if (req.file.mimetype === "text/plain") {
+    fileType = "text"
+}
+else if (req.file.mimetype.startsWith("image")) {
+    fileType = "image"
+}
+else if (req.file.mimetype.startsWith("video")) {
+    fileType = "video"
+}
+else if (req.file.mimetype.startsWith("audio")) {
+    fileType = "audio"
+}
 
         const fileName = req.file.path
 
@@ -471,7 +494,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
             newMessage = await Message.create({
                 from,
                 message: fileName,
-                type,
+                type:fileType,
                 originalName,
                 isGroup: true,
                 groupId: to
@@ -493,7 +516,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 to,
                 message: fileName,
                 originalName,
-                type
+                type:fileType
             })
 
             const receiverSocketId = onlineUsers[to]
