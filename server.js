@@ -109,26 +109,28 @@ const storage = new CloudinaryStorage({
 
         let resourceType = "auto"
 
-        if (file.mimetype === "application/pdf") {
-            resourceType = "raw"
-        }
-        else if (file.mimetype.includes("word") || file.mimetype.includes("officedocument")) {
-            resourceType = "raw"
-        }
-        else if (file.mimetype === "text/plain") {
-            resourceType = "raw"
-        }
-        else if (file.mimetype.startsWith("video")) {
+        // if (file.mimetype === "application/pdf") {
+        //     resourceType = "raw"
+        // }
+        // else if (file.mimetype.includes("word") || file.mimetype.includes("officedocument")) {
+        //     resourceType = "raw"
+        // }
+        // else if (file.mimetype === "text/plain") {
+        //     resourceType = "raw"
+        // }
+        if (file.mimetype.startsWith("video")) {
             resourceType = "video"
         }
         else if (file.mimetype.startsWith("image")) {
             resourceType = "image"
+        }else{
+            resourceType="auto"
         }
 
         return {
             folder: "chat-app",
             resource_type: resourceType,
-            format: file.mimetype === "application/pdf" ? "pdf" : undefined,
+            // format: file.mimetype === "application/pdf" ? "pdf" : undefined,
             public_id: Date.now() + "-" + file.originalname
         }
     }
