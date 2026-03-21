@@ -503,17 +503,18 @@
 
     const ext = fileName.split(".").pop().toLowerCase()
 
-    // 🔥 FIX PDF PATH
-    if (ext === "pdf") {
+    // 🔥 ALWAYS FIX CLOUDINARY PATH
+    if (url.includes("/image/upload/")) {
         url = url.replace("/image/upload/", "/raw/upload/")
-
-        // ✅ OPEN / DOWNLOAD PDF DIRECTLY
-        window.open(url, "_blank")
-        return
     }
 
-    // ✅ OTHER FILES (Word, PPT, TXT)
-    downloadFile(url, fileName)
+    // ✅ DIRECT DOWNLOAD (BEST FOR ALL FILES)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
 }
         function sendMessage() {
 
