@@ -510,7 +510,7 @@ else if (req.file.mimetype.startsWith("audio")) {
                 from,
                 message: fileName,
                 type:fileType,
-                originalName,
+                originalName:req.file.originalname,
                 isGroup: true,
                 groupId: to
             })
