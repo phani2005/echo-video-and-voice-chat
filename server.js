@@ -139,7 +139,9 @@ const storage = new CloudinaryStorage({
             folder: "chat-app",
             resource_type: resourceType,
             // format: file.mimetype === "application/pdf" ? "pdf" : undefined,
-            public_id: Date.now() + "-" + file.originalname
+            public_id: Date.now() + "-" + file.originalname,
+            type: "upload",
+            access_mode: "public"
         }
     }
 })
