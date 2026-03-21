@@ -713,8 +713,12 @@
     else if (ext === "zip") iconClass = "fa-file-zipper"
     else if (ext === "txt") iconClass = "fa-file-lines"
 
-    const fileUrl = msgObj.message   // ✅ DIRECT URL (NO CHANGE)
+   let fileUrl = msgObj.message
 
+// 🔥 FORCE INLINE OPEN FOR PDF
+if (msgObj.type === "pdf") {
+    fileUrl = fileUrl.replace("/upload/", "/upload/fl_inline/")
+}
     content = `
     <a href="${fileUrl}" target="_blank"
        style="
