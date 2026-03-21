@@ -473,31 +473,18 @@
         // })
         function downloadFile(url, filename) {
 
-    fetch(url)
-        .then(async res => {
+    const a = document.createElement("a")
+    a.href = url
 
-            const contentType = res.headers.get("content-type") || "application/octet-stream"
-            const blob = await res.blob()
+    // 🔥 FORCE DOWNLOAD USING CLOUDINARY PARAM
+    a.setAttribute("download", filename)
 
-            // 🔥 FIX: force correct type
-            const fixedBlob = new Blob([blob], { type: contentType })
+    // 🔥 IMPORTANT FIX
+    a.setAttribute("target", "_blank")
 
-            const blobUrl = window.URL.createObjectURL(fixedBlob)
-
-            const a = document.createElement("a")
-            a.href = blobUrl
-            a.download = filename
-
-            document.body.appendChild(a)
-            a.click()
-
-            a.remove()
-            window.URL.revokeObjectURL(blobUrl)
-        })
-        .catch(err => {
-            console.error("Download error:", err)
-            alert("Download failed")
-        })
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
 }
         function sendMessage() {
 
@@ -740,7 +727,11 @@
     else if (ext === "xls" || ext === "xlsx") icon = "📈"
 
     content = `
-    <div onclick="downloadFile('${msgObj.message}', '${fileName}')"
+    <div onclick="
+    let url = '${msgObj.message}';
+    url = url.replace('/upload/', '/upload/fl_attachment/');
+    downloadFile(url, '${fileName}')
+"
          style="
             display:flex;
             align-items:center;
