@@ -237,6 +237,7 @@
             formData.append("to", receiverEmail)
             formData.append("type", type)
             formData.append("isGroup", isGroup)
+            formData.append("originalName", file.name)
 
             const res = await fetch("/upload-message", {
                 method: "POST",
