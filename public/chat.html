@@ -696,6 +696,18 @@
                 chatBody.appendChild(divider)
             }
         }
+        function openImageModal(url) {
+
+    const modal = document.getElementById("imageModal")
+    const img = document.getElementById("modalImage")
+    const downloadBtn = document.getElementById("downloadImage")
+
+    modal.style.display = "block"
+    img.src = url
+
+    // ✅ download button
+    downloadBtn.href = url
+}
         function addMessage(msgObj, type) {
 
             insertDateDivider(msgObj.timestamp)
@@ -731,11 +743,11 @@
     let videoUrl = msgObj.message
 
     // 🔥 FIX cloudinary wrong path
-    videoUrl = videoUrl.replace("/image/upload/", "/video/upload/")
+    // videoUrl = videoUrl.replace("/image/upload/", "/video/upload/")
 
     content = `
     <video controls width="200">
-        <source src="${videoUrl}" type="video/mp4">
+        <source src="${msgObj.message}" type="video/mp4">
     </video>
     `
 }
