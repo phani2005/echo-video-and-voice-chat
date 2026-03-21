@@ -692,55 +692,15 @@
             }
             else if (msgObj.type === "file") {
 
-                const fileName = msgObj.message.split("/").pop()
-                const ext = fileName.split(".").pop().toLowerCase()
+    const fileName = msgObj.message.split("/").pop()
 
-                let icon = "📄"
-
-                if (ext === "pdf") icon = "📕"
-                else if (ext === "doc" || ext === "docx") icon = "📝"
-                else if (ext === "ppt" || ext === "pptx") icon = "📊"
-                else if (ext === "xls" || ext === "xlsx") icon = "📈"
-                else if (ext === "zip") icon = "🗜️"
-
-                let fileUrl = msgObj.message
-
-                // 🔥 IMPORTANT FIX FOR PDF
-                if (ext === "pdf") {
-
-                    // 🔥 FIX RESOURCE TYPE + INLINE VIEW
-                    fileUrl = msgObj.message
-                        .replace("/image/upload/", "/raw/upload/")
-                        .replace("/upload/", "/upload/fl_inline/")
-                }
-                console.log("PDF URL:", fileUrl)
-
-                content = `
-        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer"
+    content = `
+        <a href="${msgObj.message}" target="_blank"
            style="text-decoration:none;color:#075E54;font-weight:bold;">
-            ${icon} ${fileName}
+            📎 ${fileName}
         </a>
     `
-            }
-            //         else {
-            //             if (isGroup && msgObj.from !== loggedUser) {
-
-            //                 let senderName = msgObj.from
-
-            //                 if (contactNames[msgObj.from]) {
-            //                     senderName = contactNames[msgObj.from]
-            //                 }
-
-            //                 content = `
-            // <small style="color:#075E54;font-weight:bold">
-            //     ${senderName}
-            // </small><br>
-            // ${msgObj.message}
-            // `
-            //             } else {
-            //                 content = msgObj.message
-            //             }
-            //         }
+}
             else {
                 content = msgObj.message
             }
