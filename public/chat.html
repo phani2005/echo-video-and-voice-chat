@@ -701,35 +701,46 @@
             }
             else if (msgObj.type === "file") {
 
-                const fileName = msgObj.message.split("/").pop()
-                const ext = fileName.split(".").pop().toLowerCase()
+    const fileName = msgObj.originalName || msgObj.message.split("/").pop()
+    const ext = fileName.split(".").pop().toLowerCase()
 
-                let icon = "📄"
+    let iconClass = "fa-file"
 
-                if (ext === "pdf") icon = "📕"
-                else if (ext === "doc" || ext === "docx") icon = "📝"
-                else if (ext === "ppt" || ext === "pptx") icon = "📊"
-                else if (ext === "xls" || ext === "xlsx") icon = "📈"
-                else if (ext === "zip") icon = "🗜️"
+    if (ext === "pdf") iconClass = "fa-file-pdf"
+    else if (ext === "doc" || ext === "docx") iconClass = "fa-file-word"
+    else if (ext === "xls" || ext === "xlsx") iconClass = "fa-file-excel"
+    else if (ext === "ppt" || ext === "pptx") iconClass = "fa-file-powerpoint"
+    else if (ext === "zip") iconClass = "fa-file-zipper"
+    else if (ext === "txt") iconClass = "fa-file-lines"
 
-                let fileUrl = msgObj.message
+    content = `
+    <a href="${msgObj.message}" target="_blank"
+       style="
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:8px;
+        background:#f0f0f0;
+        border-radius:10px;
+        text-decoration:none;
+        color:black;
+        max-width:220px;
+       ">
 
-                // 🔥 IMPORTANT FIX FOR PDF
-                if (ext === "pdf") {
+        <i class="fa-solid ${iconClass}" style="font-size:22px;"></i>
 
-                    // 🔥 FIX RESOURCE TYPE + INLINE VIEW
-                    fileUrl = msgObj.message
-                        .replace("/image/upload/", "/raw/upload/")
-                        .replace("/upload/", "/upload/fl_inline/")
-                }
+        <div style="overflow:hidden;">
+            <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${fileName}
+            </div>
+            <div style="font-size:12px;color:gray;">
+                ${ext.toUpperCase()}
+            </div>
+        </div>
 
-                content = `
-        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer"
-           style="text-decoration:none;color:#075E54;font-weight:bold;">
-            ${icon} ${fileName}
-        </a>
+    </a>
     `
-            }
+}
             else {
                 content = msgObj.message
             }
