@@ -690,43 +690,37 @@
     }
     // ✅ DOCUMENT HANDLING WITH ICONS & PREVIEWS
     // ✅ PERFECT DOCUMENT HANDLING
-else if (["pdf", "word", "excel", "powerpoint", "archive", "file"].includes(msgObj.type)) {
-    const fileName = msgObj.originalName || msgObj.message.split("/").pop()
-    const ext = fileName.split('.').pop().toLowerCase()
-    
-    let icon = "📎", preview = ""
-    
-    if (msgObj.type === "pdf" || ext === "pdf") {
-        icon = "📕"
-        const pdfPreviewUrl = msgObj.message.replace('/upload/', '/raw/upload/')
-        preview = `
-            <iframe src="${pdfPreviewUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH" 
-                    style="width:220px;height:150px;border-radius:8px;border:1px solid #ddd;margin-top:5px;"
-                    frameborder="0"></iframe>
-        `
-    } else if (["doc", "docx"].includes(ext)) icon = "📝"
-    else if (["xls", "xlsx"].includes(ext)) icon = "📈"
-    else if (["ppt", "pptx"].includes(ext)) icon = "📊"
-    else if (["zip", "rar"].includes(ext)) icon = "🗜️"
+else if (msgObj.type === "file") {
 
-    content = `
-        <div style="max-width:250px;">
-            <div style="display:flex;align-items:center;padding:8px 12px;background:#f0f0f0;border-radius:12px;margin-bottom:5px;">
-                <span style="font-size:24px;margin-right:10px;">${icon}</span>
-                <div style="flex:1;word-break:break-word;">
-                    <div style="font-weight:500;color:#075E54;font-size:14px;">${fileName}</div>
-                </div>
-            </div>
-            ${preview}
-            <div style="text-align:center;">
-                <a href="${msgObj.message}" target="_blank" download
-                   style="background:#25D366;color:white;padding:6px 12px;border-radius:20px;font-size:12px;text-decoration:none;font-weight:500;display:inline-block;margin-top:5px;">
-                    📥 Download
-                </a>
-            </div>
-        </div>
+                const fileName = msgObj.message.split("/").pop()
+                const ext = fileName.split(".").pop().toLowerCase()
+
+                let icon = "📄"
+
+                if (ext === "pdf") icon = "📕"
+                else if (ext === "doc" || ext === "docx") icon = "📝"
+                else if (ext === "ppt" || ext === "pptx") icon = "📊"
+                else if (ext === "xls" || ext === "xlsx") icon = "📈"
+                else if (ext === "zip") icon = "🗜️"
+
+                let fileUrl = msgObj.message
+
+                // 🔥 IMPORTANT FIX FOR PDF
+                if (ext === "pdf") {
+
+                    // 🔥 FIX RESOURCE TYPE + INLINE VIEW
+                    fileUrl = msgObj.message
+                        .replace("/image/upload/", "/raw/upload/")
+                        .replace("/upload/", "/upload/fl_inline/")
+                }
+
+                content = `
+        <a href="${fileUrl}" target="_blank" rel="noopener noreferrer"
+           style="text-decoration:none;color:#075E54;font-weight:bold;">
+            ${icon} ${fileName}
+        </a>
     `
-}
+            }
     else {
         content = msgObj.message
     }
