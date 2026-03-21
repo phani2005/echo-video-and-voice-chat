@@ -699,43 +699,45 @@
                      <source src="${msgObj.message}">
                    </audio>`
             }
-            else if (msgObj.type === "file"||msgObj.type==="pdf"||msgObj.type==="word"||msgObj.type==="text") {
+            else if (msgObj.type === "file" || msgObj.type === "pdf" || msgObj.type === "word" || msgObj.type === "text") {
 
     const fileName = msgObj.originalName || msgObj.message.split("/").pop()
     const ext = fileName.split(".").pop().toLowerCase()
 
-    let iconClass = "fa-file"
+    let icon = "📄"
 
-    if (ext === "pdf") iconClass = "fa-file-pdf"
-    else if (ext === "doc" || ext === "docx") iconClass = "fa-file-word"
-    else if (ext === "xls" || ext === "xlsx") iconClass = "fa-file-excel"
-    else if (ext === "ppt" || ext === "pptx") iconClass = "fa-file-powerpoint"
-    else if (ext === "zip") iconClass = "fa-file-zipper"
-    else if (ext === "txt") iconClass = "fa-file-lines"
+    if (ext === "pdf") icon = "📕"
+    else if (ext === "doc" || ext === "docx") icon = "📝"
+    else if (ext === "ppt" || ext === "pptx") icon = "📊"
+    else if (ext === "xls" || ext === "xlsx") icon = "📈"
+    else if (ext === "zip") icon = "🗜️"
 
-    const fileUrl = msgObj.message   // ✅ DIRECT URL (NO CHANGE)
+    const fileUrl = msgObj.message
 
     content = `
-    <a href="${fileUrl}" target="_blank"
+    <a href="${fileUrl}" download="${fileName}"
        style="
         display:flex;
         align-items:center;
         gap:10px;
-        padding:8px;
-        background:#f0f0f0;
+        padding:10px;
+        background:${type === "sent" ? "#dcf8c6" : "#fff"};
         border-radius:10px;
         text-decoration:none;
         color:black;
-        max-width:220px;
+        max-width:230px;
        ">
 
-        <i class="fa-solid ${iconClass}" 
-           style="font-size:22px;color:${ext === "pdf" ? "red" : "black"};"></i>
+        <span style="font-size:22px">${icon}</span>
 
         <div style="overflow:hidden;">
-            <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            <div style="font-size:14px;
+                        white-space:nowrap;
+                        overflow:hidden;
+                        text-overflow:ellipsis;">
                 ${fileName}
             </div>
+
             <div style="font-size:12px;color:gray;">
                 ${ext.toUpperCase()}
             </div>
