@@ -745,8 +745,17 @@
     let ext = '${fileName}'.split('.').pop().toLowerCase();
 
     if (ext === 'pdf') {
-        url = url.replace('/upload/', '/upload/fl_attachment/');
-    }
+
+    const link = document.createElement("a")
+    link.href = '${msgObj.message}'.replace('/upload/', '/upload/fl_attachment/')
+    link.download = fileName
+
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    return
+}
 
     downloadFile(url, '${fileName}');
 "
