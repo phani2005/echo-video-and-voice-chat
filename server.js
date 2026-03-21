@@ -107,7 +107,15 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
 
-        let resourceType = "auto"   // 🔥 IMPORTANT
+        let resourceType = "auto"
+
+        if (file.mimetype.startsWith("video")) {
+            resourceType = "video"
+        } else if (file.mimetype.startsWith("image")) {
+            resourceType = "image"
+        } else {
+            resourceType = "raw"
+        }
 
         return {
             folder: "chat-app",
@@ -444,7 +452,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
             return res.status(400).json({ error: "File upload failed" })
         }
 
-        const { from, to, type, isGroup } = req.body
+        const { from, to, type, isGroup, originalName } = req.body
 
         const fileName = req.file.path
 
@@ -456,6 +464,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 from,
                 message: fileName,
                 type,
+                originalName,
                 isGroup: true,
                 groupId: to
             })
@@ -475,6 +484,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 from,
                 to,
                 message: fileName,
+                originalName,
                 type
             })
 
