@@ -106,25 +106,15 @@ const Call = mongoose.model("Call", callSchema)
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        let resourceType = "auto"
-        
-        // ✅ FIX FOR PDFs & DOCUMENTS
-        const fileExt = file.originalname.split('.').pop().toLowerCase()
-        if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt)) {
-            resourceType = "raw"  // ✅ CRITICAL: Use "raw" for documents
-        }
-        
+
+        let resourceType = "auto"   // 🔥 IMPORTANT
+
         return {
             folder: "chat-app",
-            resource_type: resourceType,  // ✅ This fixes PDF access
-            format: fileExt,  // ✅ Ensure correct format
-            transformation: [
-                { resource_type: resourceType === "raw" ? "raw" : "auto" }
-            ]
+            resource_type: resourceType
         }
     }
 })
-
 const upload = multer({ storage: storage })
 let tempUser = {}
 let generatedOTP = ""
