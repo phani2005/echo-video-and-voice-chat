@@ -499,6 +499,27 @@
             alert("Download failed")
         })
 }
+        function handleFileClick(url, fileName) {
+
+    const ext = fileName.split(".").pop().toLowerCase()
+
+    // ✅ PDF → force download
+    if (ext === "pdf") {
+
+        const link = document.createElement("a")
+        link.href = url.replace('/upload/', '/upload/fl_attachment/')
+        link.download = fileName
+
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+
+        return
+    }
+
+    // ✅ OTHER FILES
+    downloadFile(url, fileName)
+}
         function sendMessage() {
 
             const text = input.value.trim()
