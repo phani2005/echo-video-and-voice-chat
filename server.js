@@ -141,8 +141,7 @@ const storage = new CloudinaryStorage({
             // format: file.mimetype === "application/pdf" ? "pdf" : undefined,
             public_id: Date.now() + "-" + file.originalname.replace(/\.[^/.]+$/, ""),
             // type: "upload",
-            access_mode: "public",
-            flags: "attachment"
+            access_mode: "public"
         }
     }
 })
