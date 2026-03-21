@@ -473,43 +473,16 @@
         // })
         function downloadFile(url, filename) {
 
-    fetch(url)
-        .then(async res => {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.target = "_blank"
 
-            if (!res.ok) {
-                throw new Error("File fetch failed")
-            }
-
-            const blob = await res.blob()
-
-            const blobUrl = window.URL.createObjectURL(blob)
-
-            const a = document.createElement("a")
-            a.href = blobUrl
-            a.download = filename
-
-            document.body.appendChild(a)
-            a.click()
-
-            a.remove()
-            window.URL.revokeObjectURL(blobUrl)
-        })
-        .catch(err => {
-            console.error("Download error:", err)
-            alert("Download failed")
-        })
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
 }
         function handleFileClick(url, fileName) {
-
-    const ext = fileName.split(".").pop().toLowerCase()
-
-    // ✅ PDF → direct download using fetch (NO Cloudinary transform)
-    if (ext === "pdf") {
-        downloadFile(url, fileName)
-        return
-    }
-
-    // ✅ OTHER FILES
     downloadFile(url, fileName)
 }
         function sendMessage() {
