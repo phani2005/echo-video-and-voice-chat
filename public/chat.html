@@ -713,12 +713,7 @@
     else if (ext === "zip") iconClass = "fa-file-zipper"
     else if (ext === "txt") iconClass = "fa-file-lines"
 
-    let fileUrl = msgObj.message
-
-    // 🔥 ONLY FIX PDF (IMPORTANT)
-    if (ext === "pdf") {
-        fileUrl = msgObj.message.replace("/upload/", "/upload/fl_inline/")
-    }
+    const fileUrl = msgObj.message   // ✅ DIRECT URL (NO CHANGE)
 
     content = `
     <a href="${fileUrl}" target="_blank"
@@ -734,7 +729,8 @@
         max-width:220px;
        ">
 
-        <i class="fa-solid ${iconClass}" style="font-size:22px;color:${ext === "pdf" ? "red" : "black"};"></i>
+        <i class="fa-solid ${iconClass}" 
+           style="font-size:22px;color:${ext === "pdf" ? "red" : "black"};"></i>
 
         <div style="overflow:hidden;">
             <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -747,8 +743,7 @@
 
     </a>
     `
-}
-            else {
+}            else {
                 content = msgObj.message
             }
 
