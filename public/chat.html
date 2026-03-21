@@ -473,18 +473,31 @@
         // })
         function downloadFile(url, filename) {
 
-    const a = document.createElement("a")
-    a.href = url
+    fetch(url)
+        .then(async res => {
 
-    // 🔥 FORCE DOWNLOAD USING CLOUDINARY PARAM
-    a.setAttribute("download", filename)
+            const contentType = res.headers.get("content-type") || "application/octet-stream"
+            const blob = await res.blob()
 
-    // 🔥 IMPORTANT FIX
-    a.setAttribute("target", "_blank")
+            // 🔥 FIX: force correct type
+            const fixedBlob = new Blob([blob], { type: contentType })
 
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
+            const blobUrl = window.URL.createObjectURL(fixedBlob)
+
+            const a = document.createElement("a")
+            a.href = blobUrl
+            a.download = filename
+
+            document.body.appendChild(a)
+            a.click()
+
+            a.remove()
+            window.URL.revokeObjectURL(blobUrl)
+        })
+        .catch(err => {
+            console.error("Download error:", err)
+            alert("Download failed")
+        })
 }
         function sendMessage() {
 
@@ -729,8 +742,13 @@
     content = `
     <div onclick="
     let url = '${msgObj.message}';
-    url = url.replace('/upload/', '/upload/fl_attachment/');
-    downloadFile(url, '${fileName}')
+    let ext = '${fileName}'.split('.').pop().toLowerCase();
+
+    if (ext === 'pdf') {
+        url = url.replace('/upload/', '/upload/fl_attachment/');
+    }
+
+    downloadFile(url, '${fileName}');
 "
          style="
             display:flex;
