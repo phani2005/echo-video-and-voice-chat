@@ -503,13 +503,16 @@
 
     const ext = fileName.split(".").pop().toLowerCase()
 
-    // ✅ PDF → direct download using fetch (NO Cloudinary transform)
+    // 🔥 FIX PDF PATH
     if (ext === "pdf") {
-        downloadFile(url, fileName)
+        url = url.replace("/image/upload/", "/raw/upload/")
+
+        // ✅ OPEN / DOWNLOAD PDF DIRECTLY
+        window.open(url, "_blank")
         return
     }
 
-    // ✅ OTHER FILES
+    // ✅ OTHER FILES (Word, PPT, TXT)
     downloadFile(url, fileName)
 }
         function sendMessage() {
@@ -756,9 +759,15 @@
     else if (ext === "doc" || ext === "docx") icon = "📝"
     else if (ext === "ppt" || ext === "pptx") icon = "📊"
     else if (ext === "xls" || ext === "xlsx") icon = "📈"
+    let fileUrl = msgObj.message
+
+// 🔥 FIX PDF WRONG PATH
+if (ext === "pdf") {
+    fileUrl = fileUrl.replace("/image/upload/", "/raw/upload/")
+}
 
     content = `
-    <div onclick="handleFileClick('${msgObj.message}', '${fileName}')"
+    <div onclick="handleFileClick('${fileUrl}', '${fileName}')"
          style="
             display:flex;
             align-items:center;
