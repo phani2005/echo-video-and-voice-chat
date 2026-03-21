@@ -82,6 +82,7 @@ const messageSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now },
     delivered: { type: Boolean, default: false },
     seen: { type: Boolean, default: false },
+    originalName: String,
     deletedFor: [String],
     deletedForEveryone: { type: Boolean, default: false },
     hiddenFor: [String]
@@ -476,47 +477,52 @@ app.post("/deletecontact", async (req, res) => {
 })
 app.post("/upload-message", upload.single("file"), async (req, res) => {
     try {
-
         if (!req.file) {
             return res.status(400).json({ error: "File upload failed" })
         }
 
-        const { from, to, type, isGroup } = req.body
+        const { from, to, type, isGroup, originalName } = req.body  // ✅ ADD originalName
 
         const fileName = req.file.path
+        const fileExtension = originalName ? originalName.split('.').pop().toLowerCase() : 'unknown'
+
+        // ✅ Determine specific document type
+        let documentType = "file"
+        if (fileExtension === 'pdf') documentType = "pdf"
+        else if (['doc', 'docx'].includes(fileExtension)) documentType = "word"
+        else if (['xls', 'xlsx'].includes(fileExtension)) documentType = "excel"
+        else if (['ppt', 'pptx'].includes(fileExtension)) documentType = "powerpoint"
+        else if (['zip', 'rar'].includes(fileExtension)) documentType = "archive"
 
         let newMessage
 
         if (isGroup === "true") {
-
             newMessage = await Message.create({
                 from,
                 message: fileName,
-                type,
+                type: documentType,  // ✅ Use specific type
+                originalName: originalName,  // ✅ Store original filename
                 isGroup: true,
                 groupId: to
             })
 
             const group = await Group.findById(to)
-
             for (let member of group.members) {
                 const memberSocket = onlineUsers[member]
                 if (memberSocket) {
                     io.to(memberSocket).emit("receive-message", newMessage)
                 }
             }
-
         } else {
-
             newMessage = await Message.create({
                 from,
                 to,
                 message: fileName,
-                type
+                type: documentType,  // ✅ Use specific type
+                originalName: originalName,  // ✅ Store original filename
             })
 
             const receiverSocketId = onlineUsers[to]
-
             if (receiverSocketId) {
                 newMessage.delivered = true
                 await newMessage.save()
@@ -530,7 +536,6 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
         }
 
         res.json(newMessage)
-
     } catch (error) {
         console.error("Upload error:", error)
         res.status(500).json({ error: "Upload failed" })
