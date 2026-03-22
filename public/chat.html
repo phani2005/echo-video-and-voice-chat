@@ -80,6 +80,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js" type="module"></script>
     <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("/service-worker.js")
+        }
         const input = document.getElementById("messageInput")
         const attachBtn = document.getElementById("attachBtn")
         const fileInput = document.getElementById("fileInput")
@@ -95,6 +98,12 @@
         const dropdownMenu = document.getElementById("dropdownMenu")
         const isGroup = localStorage.getItem("isGroup") === "true"
         let contactNames = {}
+        async function requestPermission() {
+              const permission = await Notification.requestPermission()
+              console.log("Permission:", permission)
+        }
+
+        requestPermission()
 
         menuBtn.addEventListener("click", () => {
             dropdownMenu.style.display =
