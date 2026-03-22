@@ -1,0 +1,15 @@
+{
+  "name": "Chat App",
+  "short_name": "Chat",
+  "start_url": "/login.html",
+  "display": "standalone",
+  "background_color": "#111",
+  "theme_color": "#075E54",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
