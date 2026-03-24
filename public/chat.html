@@ -99,11 +99,11 @@
         const isGroup = localStorage.getItem("isGroup") === "true"
         let contactNames = {}
         async function requestPermission() {
-              const permission = await Notification.requestPermission()
-              console.log("Permission:", permission)
+            const permission = await Notification.requestPermission()
+            console.log("Permission:", permission)
         }
 
-        requestPermission()
+        // requestPermission()
 
         menuBtn.addEventListener("click", () => {
             dropdownMenu.style.display =
@@ -280,9 +280,10 @@
             window.location.href = "/main.html"
         })
         // const socket = io()
-        const socket = io(window.location.origin, {
-            transports: ["websocket"]
-        })
+        // const socket = io(window.location.origin, {
+        //     transports: ["websocket"]
+        // })
+        const socket = io(window.location.origin)
         const loggedUser = localStorage.getItem("loggedUser")
         const receiverEmail = localStorage.getItem("chatWith")
         console.log("Logged user:", loggedUser)
@@ -291,8 +292,21 @@
         if (loggedUser) {
             socket.emit("register-user", loggedUser)
         }
+        let isActive = true
+
+        window.addEventListener("focus", () => {
+            isActive = true
+            socket.emit("user-active", loggedUser)
+        })
+
+        window.addEventListener("blur", () => {
+            isActive = false
+            socket.emit("user-inactive", loggedUser)
+        })
         // loadContacts()
         initChat()
+        const urlParams = new URLSearchParams(window.location.search)
+        const isCallOpen = urlParams.get("call") === "true"
 
         // Load receiver info
         // document.getElementById("chatName").innerText =
@@ -309,6 +323,30 @@
             await loadContacts()     // wait until contacts are loaded
 
             await loadOldMessages()  // then load messages
+
+        }
+        if (isCallOpen) {
+
+            setTimeout(async () => {
+
+                const res = await fetch(`/get-pending-call/${loggedUser}`)
+                const data = await res.json()
+
+                console.log("📞 Pending call:", data)
+
+                if (data.exists) {
+
+                    localStorage.setItem("incomingOffer", JSON.stringify(data.offer))
+                    localStorage.setItem("incomingFrom", data.from)
+                    localStorage.setItem("callType", "receiver")
+
+                    window.location.href =
+                        data.type === "video"
+                            ? "/videocall.html"
+                            : "/voicechat.html"
+                }
+
+            }, 1000)
 
         }
 
@@ -482,49 +520,49 @@
         // })
         function downloadFile(url, filename) {
 
-    fetch(url)
-        .then(async res => {
+            fetch(url)
+                .then(async res => {
 
-            if (!res.ok) {
-                throw new Error("File fetch failed")
-            }
+                    if (!res.ok) {
+                        throw new Error("File fetch failed")
+                    }
 
-            const blob = await res.blob()
+                    const blob = await res.blob()
 
-            const blobUrl = window.URL.createObjectURL(blob)
+                    const blobUrl = window.URL.createObjectURL(blob)
 
-            const a = document.createElement("a")
-            a.href = blobUrl
-            a.download = filename
+                    const a = document.createElement("a")
+                    a.href = blobUrl
+                    a.download = filename
 
-            document.body.appendChild(a)
-            a.click()
+                    document.body.appendChild(a)
+                    a.click()
 
-            a.remove()
-            window.URL.revokeObjectURL(blobUrl)
-        })
-        .catch(err => {
-            console.error("Download error:", err)
-            alert("Download failed")
-        })
-}
+                    a.remove()
+                    window.URL.revokeObjectURL(blobUrl)
+                })
+                .catch(err => {
+                    console.error("Download error:", err)
+                    alert("Download failed")
+                })
+        }
         function handleFileClick(url, fileName) {
 
-    const ext = fileName.split(".").pop().toLowerCase()
+            const ext = fileName.split(".").pop().toLowerCase()
 
-    // 🔥 ALWAYS FIX CLOUDINARY PATH
-    if (url.includes("/image/upload/")) {
-        url = url.replace("/image/upload/", "/raw/upload/")
-    }
+            // 🔥 ALWAYS FIX CLOUDINARY PATH
+            if (url.includes("/image/upload/")) {
+                url = url.replace("/image/upload/", "/raw/upload/")
+            }
 
-    // ✅ DIRECT DOWNLOAD (BEST FOR ALL FILES)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = fileName
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-}
+            // ✅ DIRECT DOWNLOAD (BEST FOR ALL FILES)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = fileName
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+        }
         function sendMessage() {
 
             const text = input.value.trim()
@@ -664,6 +702,69 @@
             }
         })
         let lastMessageDate = null
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4)
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/')
+
+            const rawData = window.atob(base64)
+            const outputArray = new Uint8Array(rawData.length)
+
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i)
+            }
+            return outputArray
+        }
+        async function subscribeUser() {
+
+            const registration = await navigator.serviceWorker.ready
+
+            const VAPID_PUBLIC_KEY = "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM"
+
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            })
+
+            await fetch("/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: localStorage.getItem("loggedUser"),
+                    subscription
+                })
+            })
+        }
+
+        // subscribeUser()
+        async function setupNotifications() {
+
+            console.log("Notification permission:", Notification.permission)
+
+            if (Notification.permission === "granted") {
+                console.log("Already granted → subscribing...")
+                await subscribeUser()
+                return
+            }
+
+            if (Notification.permission === "default") {
+
+                const permission = await Notification.requestPermission()
+                console.log("User response:", permission)
+
+                if (permission === "granted") {
+                    await subscribeUser()
+                }
+            }
+
+            if (Notification.permission === "denied") {
+                console.log("❌ Notifications BLOCKED")
+            }
+        }
+
+        // 🔥 CALL ONLY ONCE
+        setupNotifications()
 
         function getDateLabel(date) {
 
@@ -707,16 +808,16 @@
         }
         function openImageModal(url) {
 
-    const modal = document.getElementById("imageModal")
-    const img = document.getElementById("modalImage")
-    const downloadBtn = document.getElementById("downloadImage")
+            const modal = document.getElementById("imageModal")
+            const img = document.getElementById("modalImage")
+            const downloadBtn = document.getElementById("downloadImage")
 
-    modal.style.display = "block"
-    img.src = url
+            modal.style.display = "block"
+            img.src = url
 
-    // ✅ download button
-    downloadBtn.href = url
-}
+            // ✅ download button
+            downloadBtn.href = url
+        }
         function addMessage(msgObj, type) {
 
             insertDateDivider(msgObj.timestamp)
@@ -749,46 +850,46 @@
             }
             else if (msgObj.type === "video") {
 
-    let videoUrl = msgObj.message
+                let videoUrl = msgObj.message
 
-    // 🔥 FIX cloudinary wrong path
-    // videoUrl = videoUrl.replace("/image/upload/", "/video/upload/")
+                // 🔥 FIX cloudinary wrong path
+                // videoUrl = videoUrl.replace("/image/upload/", "/video/upload/")
 
-    content = `
+                content = `
     <video controls width="200">
         <source src="${msgObj.message}" type="video/mp4">
     </video>
     `
-}
+            }
             else if (msgObj.type === "audio") {
                 content = `<audio controls>
                      <source src="${msgObj.message}">
                    </audio>`
             }
             else if (
-    msgObj.type === "file" ||
-    msgObj.type === "pdf" ||
-    msgObj.type === "word" ||
-    msgObj.type === "text"
-) {
+                msgObj.type === "file" ||
+                msgObj.type === "pdf" ||
+                msgObj.type === "word" ||
+                msgObj.type === "text"
+            ) {
 
-    const fileName = msgObj.originalName || msgObj.message.split("/").pop()
-    const ext = fileName.split(".").pop().toLowerCase()
+                const fileName = msgObj.originalName || msgObj.message.split("/").pop()
+                const ext = fileName.split(".").pop().toLowerCase()
 
-    let icon = "📄"
+                let icon = "📄"
 
-    if (ext === "pdf") icon = "📕"
-    else if (ext === "doc" || ext === "docx") icon = "📝"
-    else if (ext === "ppt" || ext === "pptx") icon = "📊"
-    else if (ext === "xls" || ext === "xlsx") icon = "📈"
-    let fileUrl = msgObj.message
+                if (ext === "pdf") icon = "📕"
+                else if (ext === "doc" || ext === "docx") icon = "📝"
+                else if (ext === "ppt" || ext === "pptx") icon = "📊"
+                else if (ext === "xls" || ext === "xlsx") icon = "📈"
+                let fileUrl = msgObj.message
 
-// 🔥 FIX PDF WRONG PATH
-if (ext === "pdf") {
-    fileUrl = fileUrl.replace("/image/upload/", "/raw/upload/")
-}
+                // 🔥 FIX PDF WRONG PATH
+                if (ext === "pdf") {
+                    fileUrl = fileUrl.replace("/image/upload/", "/raw/upload/")
+                }
 
-    content = `
+                content = `
     <div onclick="handleFileClick('${fileUrl}', '${fileName}')"
          style="
             display:flex;
@@ -809,7 +910,7 @@ if (ext === "pdf") {
         </div>
     </div>
     `
-}         else {
+            } else {
                 content = msgObj.message
             }
 
@@ -919,19 +1020,19 @@ if (ext === "pdf") {
         })
         socket.on("incoming-group-call", ({ from, groupId, type }) => {
 
-    const accept = confirm(`Group ${type} call from ${from}`)
+            const accept = confirm(`Group ${type} call from ${from}`)
 
-    if (!accept) return
+            if (!accept) return
 
-    localStorage.setItem("chatWith", groupId)
-    localStorage.setItem("callType", "receiver")
+            localStorage.setItem("chatWith", groupId)
+            localStorage.setItem("callType", "receiver")
 
-    if (type === "video") {
-        window.location.href = "/groupvideocall.html"
-    } else {
-        window.location.href = "/groupvoicecall.html"
-    }
-})
+            if (type === "video") {
+                window.location.href = "/groupvideocall.html"
+            } else {
+                window.location.href = "/groupvoicecall.html"
+            }
+        })
         socket.on("call-answered", async ({ answer }) => {
             await peerConnection.setRemoteDescription(
                 new RTCSessionDescription(answer)
