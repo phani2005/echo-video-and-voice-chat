@@ -126,120 +126,153 @@
         const receiver = localStorage.getItem("chatWith")
         const callType = localStorage.getItem("callType")
 
-        const incomingOffer = localStorage.getItem("incomingOffer")
-        const incomingFrom = localStorage.getItem("incomingFrom")
-
         socket.emit("register-user", loggedUser)
 
-        document.getElementById("contactName").innerText =
-            localStorage.getItem("chatName") || receiver
-
-        let peer
         let localStream
-        let facingMode = "user"
-        let isMuted = false
-        let cameraOff = false
+        let peers = {}
         let seconds = 0
         let timerInterval
+        let isMuted = false
+        let cameraOff = false
+
+        /* ---------------- STREAM ---------------- */
+
+        async function initLocalStream() {
+
+            if (!localStream) {
+
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                })
+
+                document.getElementById("localVideo").srcObject = localStream
+            }
+        }
+
+        /* ---------------- TIMER ---------------- */
 
         function startTimer() {
-
             timerInterval = setInterval(() => {
                 seconds++
             }, 1000)
-
         }
 
-        async function createPeer(initiator, signal = null, from = null) {
+        /* ---------------- JOIN ---------------- */
 
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode },
-                audio: true
+        function joinCallRoom() {
+            socket.emit("join-call", {
+                user1: loggedUser,
+                user2: receiver
             })
+        }
 
-            document.getElementById("localVideo").srcObject = localStream
+        /* ---------------- PEER ---------------- */
 
-            peer = new SimplePeer({
-                initiator: initiator,
+        function createPeer(user, initiator, signal = null) {
+
+            if (peers[user]) return
+
+            const peer = new SimplePeer({
+                initiator,
                 trickle: false,
-                stream: localStream,
-                config: {
-                    iceServers: [
-                        { urls: "stun:stun.l.google.com:19302" },
-                        {
-                            urls: [
-                                "turn:openrelay.metered.ca:80",
-                                "turn:openrelay.metered.ca:443",
-                                "turn:openrelay.metered.ca:443?transport=tcp"
-                            ],
-                            username: "openrelayproject",
-                            credential: "openrelayproject"
-                        }
-                    ]
-                }
+                stream: localStream
             })
+
+            peers[user] = peer
 
             peer.on("signal", data => {
 
-                if (initiator) {
+                console.log("📡 SIGNAL:", data.type)
 
+                if (initiator) {
                     socket.emit("call-user", {
-                        to: receiver,
-                        offer: data,
+                        to: user,
                         from: loggedUser,
+                        offer: data,
                         type: "video"
                     })
-
                 } else {
-
                     socket.emit("answer-call", {
-                        to: from,
+                        to: user,
                         answer: data
                     })
-
                 }
-
             })
 
             peer.on("stream", stream => {
+
+                console.log("🎥 STREAM RECEIVED from:", user)
+
                 document.getElementById("remoteVideo").srcObject = stream
+
                 startTimer()
+            })
+
+            peer.on("connect", () => {
+                console.log("✅ PEER CONNECTED with:", user)
             })
 
             if (signal) {
                 peer.signal(signal)
             }
-
         }
 
-        if (callType === "caller") {
+        /* ---------------- START CALL ---------------- */
 
-            createPeer(true)
+        async function startCall() {
 
-            setTimeout(() => {
+            await initLocalStream()
 
-                if (!peer || !peer.connected) {
+            joinCallRoom()
 
-                    socket.emit("missed-call", {
-                        to: receiver,
-                        from: loggedUser,
-                        type: "video"
-                    })
+            console.log("📥 Caller joined video call")
 
-                }
-
-            }, 30000) // 30 seconds
-
+            socket.emit("call-user", {
+                to: receiver,
+                from: loggedUser,
+                type: "video"
+            })
         }
 
-        if (callType === "receiver" && incomingOffer) {
-            createPeer(false, JSON.parse(incomingOffer), incomingFrom)
-        }
+        /* ---------------- USER JOINED ---------------- */
 
-        socket.on("incoming-call", ({ from, offer, type }) => {
+        socket.on("user-joined-call", async ({ user }) => {
+
+            if (user === loggedUser) return
+
+            console.log("👥 user joined:", user)
+
+            await initLocalStream()
+
+            // 🔥 SAME AS VOICE
+            createPeer(user, true)
+
+            if (!peers[user]) {
+                createPeer(user, false)
+            }
+        })
+
+        /* ---------------- INCOMING CALL ---------------- */
+
+        socket.on("incoming-call", async ({ from, offer, type }) => {
 
             if (type !== "video") return
 
+            console.log("📞 Incoming VIDEO call from:", from)
+
+            // 🔥 notification case (offer exists)
+            if (offer) {
+                await initLocalStream()
+                createPeer(from, false, offer)
+                return
+            }
+
+            // 🔥 online popup
             const accept = confirm("Incoming video call from " + from)
 
             if (!accept) {
@@ -251,17 +284,25 @@
                 return
             }
 
-            localStorage.setItem("callType", "receiver")
-            localStorage.setItem("incomingOffer", JSON.stringify(offer))
-            localStorage.setItem("incomingFrom", from)
+            await initLocalStream()
 
-            window.location.href = "/videocall.html"
+            joinCallRoom()
 
+            console.log("📥 Receiver accepted video call")
         })
 
-        socket.on("call-answered", ({ answer }) => {
-            peer.signal(answer)
+        /* ---------------- ANSWER ---------------- */
+
+        socket.on("call-answered", ({ from, answer }) => {
+
+            console.log("📥 ANSWER RECEIVED from:", from)
+
+            if (peers[from]) {
+                peers[from].signal(answer)
+            }
         })
+
+        /* ---------------- END ---------------- */
 
         socket.on("call-ended", () => {
             alert("Call ended")
@@ -277,21 +318,18 @@
                 duration: seconds
             })
 
-            if (timerInterval) {
-                clearInterval(timerInterval)
-            }
-
-            if (peer) {
-                peer.destroy()
-            }
+            Object.values(peers).forEach(p => p.destroy())
 
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop())
+                localStream.getTracks().forEach(t => t.stop())
             }
 
-            window.location.href = "/chat.html"
+            clearInterval(timerInterval)
 
+            window.location.href = "/chat.html"
         }
+
+        /* ---------------- CONTROLS ---------------- */
 
         function toggleMute() {
 
@@ -302,15 +340,6 @@
             localStream.getAudioTracks().forEach(track => {
                 track.enabled = !isMuted
             })
-
-            const icon = document.querySelector("#muteBtn i")
-
-            if (isMuted) {
-                icon.className = "fa-solid fa-microphone-slash"
-            } else {
-                icon.className = "fa-solid fa-microphone"
-            }
-
         }
 
         function toggleCamera() {
@@ -322,44 +351,20 @@
             localStream.getVideoTracks().forEach(track => {
                 track.enabled = !cameraOff
             })
-
-            const icon = document.querySelector("#cameraBtn i")
-
-            if (cameraOff) {
-                icon.className = "fa-solid fa-video-slash"
-            } else {
-                icon.className = "fa-solid fa-video"
-            }
-
         }
 
-        async function switchCamera() {
+        /* ---------------- START FLOW ---------------- */
 
-            facingMode = facingMode === "user" ? "environment" : "user"
+        if (callType === "caller") {
+            startCall()
+        }
 
-            const newStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: facingMode },
-                audio: true
-            })
-
-            const newVideoTrack = newStream.getVideoTracks()[0]
-
-            if (peer) {
-                peer.replaceTrack(
-                    localStream.getVideoTracks()[0],
-                    newVideoTrack,
-                    localStream
-                )
-            }
-
-            // stop old track
-            localStream.getVideoTracks()[0].stop()
-
-            localStream.removeTrack(localStream.getVideoTracks()[0])
-            localStream.addTrack(newVideoTrack)
-
-            document.getElementById("localVideo").srcObject = localStream
-
+        if (callType === "receiver") {
+            (async () => {
+                await initLocalStream()
+                joinCallRoom()
+                console.log("📥 Receiver joined video call")
+            })()
         }
 
     </script>
