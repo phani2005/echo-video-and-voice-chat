@@ -2,24 +2,42 @@ self.addEventListener("install", e => {
     console.log("Service Worker Installed")
 })
 
-self.addEventListener("push", event => {
+self.addEventListener("push", function (event) {
 
     const data = event.data.json()
 
-    self.registration.showNotification(data.title, {
+    const options = {
         body: data.body,
         icon: "/icon.png",
+        badge: "/icon.png",
         data: {
             url: data.url
         }
-    })
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    )
 })
 
-self.addEventListener("notificationclick", event => {
+self.addEventListener("notificationclick", function (event) {
 
     event.notification.close()
 
+    const data = event.notification.data
+
+    let url = data.url || "/chat.html"
+
+    if (data.type === "voice") {
+        url = "/voicechat.html"
+    } else if (data.type === "video") {
+        url = "/videocall.html"
+    }
+
+    // 🔥 PASS DATA USING URL PARAMS
+    url += `?from=${data.from}&type=${data.type}`
+
     event.waitUntil(
-        clients.openWindow(event.notification.data.url)
+        clients.openWindow(url)
     )
 })
