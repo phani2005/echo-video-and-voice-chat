@@ -163,45 +163,32 @@ cursor:pointer;
 
     <script>
 
-        const socket = io(window.location.origin, {
-            transports: ["websocket"]
-        })
+        const socket = io(window.location.origin, { transports: ["websocket"] })
 
         const loggedUser = localStorage.getItem("loggedUser")
         const receiver = localStorage.getItem("chatWith")
         const callType = localStorage.getItem("callType")
 
-        const incomingOffer = localStorage.getItem("incomingOffer")
-        const incomingFrom = localStorage.getItem("incomingFrom")
-
         socket.emit("register-user", loggedUser)
 
-        let peer
         let localStream
-
-        let isMuted = false
-        let speakerOn = true
-
+        let peers = {}
         let seconds = 0
         let timerInterval
 
-        function startTimer() {
+        /* ---------------- STREAM ---------------- */
 
-            timerInterval = setInterval(() => {
-
-                seconds++
-
-                const mins = Math.floor(seconds / 60)
-                const secs = seconds % 60
-
-                document.getElementById("callTimer").innerText =
-                    String(mins).padStart(2, "0") + ":" +
-                    String(secs).padStart(2, "0")
-
-            }, 1000)
-
+        async function initLocalStream() {
+            if (!localStream) {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                })
+            }
         }
-
         document.getElementById("contactName").innerText =
             localStorage.getItem("chatName") || receiver
 
@@ -213,105 +200,169 @@ cursor:pointer;
             document.getElementById("contactDp").src = "/profilephotodefault.png"
         }
 
-        async function startVoiceCall() {
+        /* ---------------- TIMER ---------------- */
 
-            localStream = await navigator.mediaDevices.getUserMedia({
-                audio: true
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                seconds++
+                const mins = Math.floor(seconds / 60)
+                const secs = seconds % 60
+
+                document.getElementById("callTimer").innerText =
+                    String(mins).padStart(2, "0") + ":" +
+                    String(secs).padStart(2, "0")
+            }, 1000)
+        }
+
+        /* ---------------- JOIN ---------------- */
+
+        function joinCallRoom() {
+            socket.emit("join-call", {
+                user1: loggedUser,
+                user2: receiver
             })
+        }
 
-            peer = new SimplePeer({
-                initiator: true,
+        /* ---------------- PEER ---------------- */
+
+        function createPeer(user, initiator, signal = null) {
+
+            if (peers[user]) return
+
+            const peer = new SimplePeer({
+                initiator,
                 trickle: false,
                 stream: localStream
             })
 
+            peers[user] = peer
+
             peer.on("signal", data => {
 
-                socket.emit("call-user", {
-                    to: receiver,
-                    offer: data,
-                    from: loggedUser,
-                    type: "voice"
-                })
+                console.log("📡 SIGNAL:", data.type)
 
+                if (initiator) {
+                    socket.emit("call-user", {
+                        to: user,
+                        from: loggedUser,
+                        offer: data,
+                        type: "voice"
+                    })
+                } else {
+                    socket.emit("answer-call", {
+                        to: user,
+                        answer: data
+                    })
+                }
             })
 
             peer.on("stream", stream => {
+                console.log("🔊 STREAM RECEIVED from:", user)
 
                 const audio = document.getElementById("remoteAudio")
                 audio.srcObject = stream
-                audio.play()
+                audio.play().catch(() => { })
 
                 startTimer()
+            })
 
+            peer.on("connect", () => {
+                console.log("✅ PEER CONNECTED with:", user)
+            })
+
+            if (signal) {
+                peer.signal(signal)
+            }
+        }
+
+        /* ---------------- CALL START ---------------- */
+
+        async function startCall() {
+
+            await initLocalStream()
+
+            joinCallRoom()
+
+            console.log("📥 Caller joined")
+
+            socket.emit("voice-call-start", {
+                to: receiver,
+                from: loggedUser,
+                type: "voice"
             })
         }
 
-        socket.on("incoming-call", ({ from, offer, type }) => {
+        /* ---------------- USER JOINED (MAIN LOGIC) ---------------- */
+
+        socket.on("user-joined-call", async ({ user }) => {
+
+            if (user === loggedUser) return
+
+            console.log("👥 user joined:", user)
+
+            await initLocalStream()
+
+            // 🔥 EXACT GROUP LOGIC
+            createPeer(user, true)
+
+            if (!peers[user]) {
+                createPeer(user, false)
+            }
+        })
+
+        /* ---------------- INCOMING CALL ---------------- */
+
+        socket.on("incoming-call", async ({ from, offer, type }) => {
 
             if (type !== "voice") return
 
+            console.log("📞 Incoming call from:", from)
+
+            // 🔥 IF OFFER EXISTS → DIRECT CONNECT (notification case)
+            if (offer) {
+                await initLocalStream()
+                createPeer(from, false, offer)
+                return
+            }
+
+            // 🔥 SHOW POPUP (online case)
             const callBox = document.getElementById("incomingCallBox")
             const callerName = document.getElementById("callerName")
 
             callerName.innerText = "Incoming voice call from " + from
-
             callBox.style.display = "block"
 
             document.getElementById("acceptCall").onclick = async () => {
 
                 callBox.style.display = "none"
 
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true
-                })
+                await initLocalStream()
 
-                peer = new SimplePeer({
-                    initiator: false,
-                    trickle: false,
-                    stream: localStream
-                })
+                joinCallRoom()
 
-                peer.on("signal", data => {
-
-                    socket.emit("answer-call", {
-                        to: from,
-                        answer: data
-                    })
-
-                })
-
-                peer.on("stream", stream => {
-
-                    const audio = document.getElementById("remoteAudio")
-                    audio.srcObject = stream
-                    audio.play()
-
-                    startTimer()
-
-                })
-
-                peer.signal(offer)
-
+                console.log("📥 Receiver accepted call")
             }
 
             document.getElementById("rejectCall").onclick = () => {
-                socket.emit("missed-call", {
-                    to: from,
-                    from: loggedUser,
-                    type: "voice"
-                })
                 callBox.style.display = "none"
             }
-
         })
 
-        socket.on("call-answered", ({ answer }) => {
-            peer.signal(answer)
+        /* ---------------- ANSWER ---------------- */
+
+        socket.on("call-answered", ({ from, answer }) => {
+
+            console.log("📥 ANSWER RECEIVED from:", from)
+
+            if (peers[from]) {
+                peers[from].signal(answer)
+            }
         })
+
+        /* ---------------- END ---------------- */
 
         socket.on("call-ended", () => {
-            alert("Call ended by other user")
+            alert("Call ended")
             window.location.href = "/chat.html"
         })
 
@@ -324,97 +375,32 @@ cursor:pointer;
                 duration: seconds
             })
 
-            if (peer) {
-                peer.destroy()
-            }
+            Object.values(peers).forEach(p => p.destroy())
 
             if (localStream) {
-                localStream.getTracks().forEach(track => track.stop())
+                localStream.getTracks().forEach(t => t.stop())
             }
 
             clearInterval(timerInterval)
 
-            localStorage.removeItem("callType")
-            localStorage.removeItem("incomingOffer")
-            localStorage.removeItem("incomingFrom")
-
-            window.location.href = "/chat.html"
-
-        }
-
-        function toggleMute() {
-
-            if (!localStream) return
-
-            localStream.getAudioTracks().forEach(track => {
-                track.enabled = isMuted
-            })
-
-            isMuted = !isMuted
-
-            document.getElementById("muteBtn").innerText =
-                isMuted ? "Unmute" : "Mute"
-
-        }
-
-        function toggleSpeaker() {
-
-            const audio = document.getElementById("remoteAudio")
-
-            if (speakerOn) {
-                audio.volume = 0.2
-                document.getElementById("speakerBtn").innerText = "Speaker Off"
-            } else {
-                audio.volume = 1
-                document.getElementById("speakerBtn").innerText = "Speaker On"
-            }
-
-            speakerOn = !speakerOn
-
-        }
-
-        function goBack() {
             window.location.href = "/chat.html"
         }
+
+        /* ---------------- START FLOW ---------------- */
 
         if (callType === "caller") {
-            startVoiceCall()
+            startCall()
         }
 
-        else if (callType === "receiver" && incomingOffer) {
-
-            localStream = navigator.mediaDevices.getUserMedia({
-                audio: true
-            }).then(stream => {
-
-                localStream = stream
-
-                peer = new SimplePeer({
-                    initiator: false,
-                    trickle: false,
-                    stream: localStream
-                })
-
-                peer.on("signal", data => {
-                    socket.emit("answer-call", {
-                        to: incomingFrom,
-                        answer: data
-                    })
-                })
-
-                peer.on("stream", stream => {
-                    document.getElementById("remoteAudio").srcObject = stream
-                    startTimer()
-                })
-
-                peer.signal(JSON.parse(incomingOffer))
-
-            })
-
+        if (callType === "receiver") {
+            (async () => {
+                await initLocalStream()
+                joinCallRoom()
+                console.log("📥 Receiver joined")
+            })()
         }
 
     </script>
-
 </body>
 
 </html>
