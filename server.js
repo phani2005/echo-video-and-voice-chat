@@ -227,16 +227,29 @@ app.post("/subscribe", async (req, res) => {
 
     const { email, subscription } = req.body
 
-    await Subscription.updateOne(
-        { email, "sub.endpoint": subscription.endpoint },
-        {
-            email,
-            sub: subscription
-        },
-        { upsert: true }
-    )
+    try {
 
-    res.json({ success: true })
+        const exists = await Subscription.findOne({
+            email,
+            "sub.endpoint": subscription.endpoint
+        })
+
+        if (!exists) {
+            await Subscription.create({
+                email,
+                sub: subscription
+            })
+            console.log("📱 NEW DEVICE ADDED:", email)
+        } else {
+            console.log("⚡ Already subscribed:", email)
+        }
+
+        res.json({ success: true })
+
+    } catch (err) {
+        console.log("SUBSCRIBE ERROR:", err)
+        res.status(500).json({ success: false })
+    }
 })
 app.post("/login", async (req, res) => {
     try {
