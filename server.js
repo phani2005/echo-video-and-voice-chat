@@ -19,7 +19,7 @@ webpush.setVapidDetails(
     "9oLUb-nprcf1PJxIrqTjaXz9oI6dMsliEXVwb1oQRQU"
 )
 
-let subscriptions = []
+// let subscriptions = []
 const activeUsers = {}
 const activeCalls = {} // 🔥 store active calls
 // import {Resend} from "resend"
@@ -114,6 +114,12 @@ const callSchema = new mongoose.Schema({
 })
 
 const Call = mongoose.model("Call", callSchema)
+const subscriptionSchema = new mongoose.Schema({
+    email: String,
+    sub: Object
+})
+
+const Subscription = mongoose.model("Subscription", subscriptionSchema)
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
@@ -217,20 +223,18 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 //             </script>`)
 //     }
 // })
-app.post("/subscribe", (req, res) => {
+app.post("/subscribe", async (req, res) => {
 
     const { email, subscription } = req.body
 
-    const exists = subscriptions.find(
-        s => s.email === email && s.sub.endpoint === subscription.endpoint
-    )
-
-    if (!exists) {
-        subscriptions.push({
+    await Subscription.updateOne(
+        { email, "sub.endpoint": subscription.endpoint },
+        {
             email,
             sub: subscription
-        })
-    }
+        },
+        { upsert: true }
+    )
 
     res.json({ success: true })
 })
@@ -559,18 +563,18 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                     else if (fileType === "audio") bodyText = "🎧 Audio in group"
                     else bodyText = "📄 File in group"
 
-                    subscriptions
-                        .filter(s => s.email === member)
-                        .forEach(s => {
-                            webpush.sendNotification(
-                                s.sub,
-                                JSON.stringify({
-                                    title: "New Group Message",
-                                    body: bodyText,
-                                    url: "/chat.html"
-                                })
-                            )
-                        })
+                    const subs = await Subscription.find({ email: to })
+
+                    subs.forEach(s => {
+                        webpush.sendNotification(
+                            s.sub,
+                            JSON.stringify({
+                                title: "New Message",
+                                body: bodyText,
+                                url: "/chat.html"
+                            })
+                        )
+                    })
                 }
             }
 
@@ -606,18 +610,18 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 else if (fileType === "audio") bodyText = "🎧 Audio received"
                 else if (fileType === "pdf" || fileType === "word" || fileType === "text") bodyText = "📄 Document received"
 
-                subscriptions
-                    .filter(s => s.email === to)
-                    .forEach(s => {
-                        webpush.sendNotification(
-                            s.sub,
-                            JSON.stringify({
-                                title: "New Message",
-                                body: bodyText,
-                                url: "/chat.html"
-                            })
-                        )
-                    })
+                const subs = await Subscription.find({ email: member })
+
+                subs.forEach(s => {
+                    webpush.sendNotification(
+                        s.sub,
+                        JSON.stringify({
+                            title: "New Message",
+                            body: bodyText,
+                            url: "/chat.html"
+                        })
+                    )
+                })
             }
         }
 
@@ -765,18 +769,18 @@ io.on("connection", (socket) => {
 
         // emoji support already works automatically
 
-        subscriptions
-            .filter(s => s.email === to)
-            .forEach(s => {
-                webpush.sendNotification(
-                    s.sub,
-                    JSON.stringify({
-                        title: "New Message",
-                        body: bodyText,
-                        url: "/chat.html"
-                    })
-                )
-            })
+        const subs = await Subscription.find({ email: to })
+
+        subs.forEach(s => {
+            webpush.sendNotification(
+                s.sub,
+                JSON.stringify({
+                    title: "New Message",
+                    body: bodyText,
+                    url: "/chat.html"
+                })
+            )
+        })
     })
     socket.on("group-message", async ({ groupId, from, message }) => {
 
@@ -803,21 +807,21 @@ io.on("connection", (socket) => {
 
             if (member === from) continue
 
-            if (!onlineUsers[member] || onlineUsers[member].length === 0) {
+            // if (!onlineUsers[member] || onlineUsers[member].length === 0) {
 
-                subscriptions
-                    .filter(s => s.email === member)
-                    .forEach(s => {
-                        webpush.sendNotification(
-                            s.sub,
-                            JSON.stringify({
-                                title: "New Group Message",
-                                body: message,
-                                url: "/chat.html"
-                            })
-                        )
-                    })
-            }
+                const subs = await Subscription.find({ email: member })
+
+                subs.forEach(s => {
+                    webpush.sendNotification(
+                        s.sub,
+                        JSON.stringify({
+                            title: "New Group Message",
+                            body: message,
+                            url: "/chat.html"
+                        })
+                    )
+                })
+            // }
         }
     })
     socket.on("mark-seen", async ({ from, to }) => {
@@ -874,7 +878,7 @@ io.on("connection", (socket) => {
 
     })
     // User calling someone
-    socket.on("call-user", ({ to, offer, from, type }) => {
+    socket.on("call-user", async ({ to, offer, from, type }) => {
         console.log("call-user function from server")
         console.log("call-user to: ", to, " from: ", from, " type: ", type, " offer: ", offer)
 
@@ -894,51 +898,51 @@ io.on("connection", (socket) => {
 
         if (!activeUsers[to]) {
 
-            subscriptions
-                .filter(s => s.email === to)
-                .forEach(s => {
-                    webpush.sendNotification(
-                        s.sub,
-                        JSON.stringify({
-                            title: "Incoming Call",
-                            body: callTypeText + " from " + from,
-                            url: type === "video"
-                                ? "/videocall.html"
-                                : "/voicechat.html"
-                        })
-                    )
-                })
-        }
-    })
-    socket.on("normal-call", ({ to, from, type }) => {
+            const subs = await Subscription.find({ email: to })
 
-        const receiverSockets = onlineUsers[to]
-        console.log("normal-call from server.js is receiving")
-        console.log("receiversockets from normal-call in server: ", receiverSockets)
-
-        if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("incoming-normal-call", {
-                    from,
-                    type
-                })
-            })
-        }
-
-        // 🔥 push notification
-        subscriptions
-            .filter(s => s.email === to)
-            .forEach(s => {
+            subs.forEach(s => {
                 webpush.sendNotification(
                     s.sub,
                     JSON.stringify({
                         title: "Incoming Call",
-                        body: `📞 Voice call from ${from}`,
-                        url: "/voicechat.html"
+                        body: callTypeText + " from " + from,
+                        url: type === "video"
+                            ? "/videocall.html"
+                            : "/voicechat.html"
                     })
                 )
             })
+        }
     })
+    // socket.on("normal-call", ({ to, from, type }) => {
+
+    //     const receiverSockets = onlineUsers[to]
+    //     console.log("normal-call from server.js is receiving")
+    //     console.log("receiversockets from normal-call in server: ", receiverSockets)
+
+    //     if (receiverSockets) {
+    //         receiverSockets.forEach(id => {
+    //             io.to(id).emit("incoming-normal-call", {
+    //                 from,
+    //                 type
+    //             })
+    //         })
+    //     }
+
+    //     // 🔥 push notification
+    //     subscriptions
+    //         .filter(s => s.email === to)
+    //         .forEach(s => {
+    //             webpush.sendNotification(
+    //                 s.sub,
+    //                 JSON.stringify({
+    //                     title: "Incoming Call",
+    //                     body: `📞 Voice call from ${from}`,
+    //                     url: "/voicechat.html"
+    //                 })
+    //             )
+    //         })
+    // })
 
     // Receiver answering call
     socket.on("answer-call", ({ to, answer }) => {
@@ -963,7 +967,7 @@ io.on("connection", (socket) => {
             })
         }
     })
-    socket.on("voice-call-start", ({ to, from, type }) => {
+    socket.on("voice-call-start", async ({ to, from, type }) => {
 
         console.log("📞 voice-call-start:", from, "→", to)
 
@@ -987,18 +991,18 @@ io.on("connection", (socket) => {
         }
 
         // 🔔 push notification
-        subscriptions
-            .filter(s => s.email === to)
-            .forEach(s => {
-                webpush.sendNotification(
-                    s.sub,
-                    JSON.stringify({
-                        title: "Incoming Call",
-                        body: `📞 Voice call from ${from}`,
-                        url: "/voicechat.html"
-                    })
-                )
-            })
+        const subs = await Subscription.find({ email: to })
+
+        subs.forEach(s => {
+            webpush.sendNotification(
+                s.sub,
+                JSON.stringify({
+                    title: "Incoming Call",
+                    body: `📞 Voice call from ${from}`,
+                    url: "/voicechat.html"
+                })
+            )
+        })
     })
 
     // ICE candidate exchange
@@ -1170,7 +1174,7 @@ io.on("connection", (socket) => {
             users: [from]
         }
 
-        group.members.forEach(member => {
+        group.members.forEach(async member => {
 
             if (member === from) return
 
@@ -1187,22 +1191,7 @@ io.on("connection", (socket) => {
 
                 })
             }
-            // if (!onlineUsers[member] || onlineUsers[member].length === 0) {
-
-            //     subscriptions
-            //         .filter(s => s.email === member)
-            //         .forEach(s => {
-            //             webpush.sendNotification(
-            //                 s.sub,
-            //                 JSON.stringify({
-            //                     title: "Group Call",
-            //                     body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${from}`,
-            //                     url: type === "video" ? "/groupvideocall.html" : "/groupvoicecall.html"
-            //                 })
-            //             )
-            //         })
-            // }
-            const userSubs = subscriptions.filter(s => s.email === member)
+            const userSubs = await Subscription.find({ email: member })
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
 
