@@ -11,6 +11,17 @@ import { v2 as cloudinary } from "cloudinary"
 import { CloudinaryStorage } from "multer-storage-cloudinary"
 import fs from "fs"
 import dns from "dns"
+import webpush from "web-push"
+
+webpush.setVapidDetails(
+    "mailto:phani005.setty@gmail.com",
+    "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM",
+    "9oLUb-nprcf1PJxIrqTjaXz9oI6dMsliEXVwb1oQRQU"
+)
+
+let subscriptions = []
+const activeUsers = {}
+const activeCalls = {} // 🔥 store active calls
 // import {Resend} from "resend"
 dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
@@ -33,7 +44,7 @@ const io = new Server(httpServer, {
         methods: ["GET", "POST"]
     }
 })
-const PORT=process.env.PORT||5000
+const PORT = process.env.PORT || 5000
 try {
     await mongoose.connect(process.env.MONGO_URL)
     console.log("Mongodb is connected successfully")
@@ -123,16 +134,16 @@ const storage = new CloudinaryStorage({
         }
         else if (file.mimetype.startsWith("image")) {
             resourceType = "image"
-        }else if (
-    file.mimetype === "application/pdf" ||
-    file.mimetype.includes("word") ||
-    file.mimetype.includes("officedocument") ||
-    file.mimetype === "text/plain"
-) {
-    resourceType = "raw"
-}
-        else{
-            resourceType="auto"
+        } else if (
+            file.mimetype === "application/pdf" ||
+            file.mimetype.includes("word") ||
+            file.mimetype.includes("officedocument") ||
+            file.mimetype === "text/plain"
+        ) {
+            resourceType = "raw"
+        }
+        else {
+            resourceType = "auto"
         }
 
         return {
@@ -206,6 +217,23 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 //             </script>`)
 //     }
 // })
+app.post("/subscribe", (req, res) => {
+
+    const { email, subscription } = req.body
+
+    const exists = subscriptions.find(
+        s => s.email === email && s.sub.endpoint === subscription.endpoint
+    )
+
+    if (!exists) {
+        subscriptions.push({
+            email,
+            sub: subscription
+        })
+    }
+
+    res.json({ success: true })
+})
 app.post("/login", async (req, res) => {
     try {
 
@@ -231,7 +259,7 @@ app.post("/login", async (req, res) => {
 app.get("/", (req, res) => {
     res.redirect("/login.html")
 })
-app.get("/login", (req,res)=>{
+app.get("/login", (req, res) => {
     res.redirect("/login.html")
 })
 
@@ -369,7 +397,7 @@ app.get("/conversations/:email", async (req, res) => {
             from: email,
             to: userEmail,
             seen: false,
-            hiddenFor:{$ne:userEmail}
+            hiddenFor: { $ne: userEmail }
         })
 
         result.push({
@@ -477,27 +505,27 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
         const { from, to, type, isGroup, originalName } = req.body
         let fileType = "file"
 
-if (req.file.mimetype === "application/pdf") {
-    fileType = "pdf"
-}
-else if (
-    req.file.mimetype.includes("word") ||
-    req.file.mimetype.includes("officedocument")
-) {
-    fileType = "word"
-}
-else if (req.file.mimetype === "text/plain") {
-    fileType = "text"
-}
-else if (req.file.mimetype.startsWith("image")) {
-    fileType = "image"
-}
-else if (req.file.mimetype.startsWith("video")) {
-    fileType = "video"
-}
-else if (req.file.mimetype.startsWith("audio")) {
-    fileType = "audio"
-}
+        if (req.file.mimetype === "application/pdf") {
+            fileType = "pdf"
+        }
+        else if (
+            req.file.mimetype.includes("word") ||
+            req.file.mimetype.includes("officedocument")
+        ) {
+            fileType = "word"
+        }
+        else if (req.file.mimetype === "text/plain") {
+            fileType = "text"
+        }
+        else if (req.file.mimetype.startsWith("image")) {
+            fileType = "image"
+        }
+        else if (req.file.mimetype.startsWith("video")) {
+            fileType = "video"
+        }
+        else if (req.file.mimetype.startsWith("audio")) {
+            fileType = "audio"
+        }
 
         const fileName = req.file.path
 
@@ -508,8 +536,8 @@ else if (req.file.mimetype.startsWith("audio")) {
             newMessage = await Message.create({
                 from,
                 message: fileName,
-                type:fileType,
-                originalName:req.file.originalname,
+                type: fileType,
+                originalName: req.file.originalname,
                 isGroup: true,
                 groupId: to
             })
@@ -521,6 +549,29 @@ else if (req.file.mimetype.startsWith("audio")) {
                 if (memberSocket) {
                     io.to(memberSocket).emit("receive-message", newMessage)
                 }
+                // 🔥 GROUP FILE NOTIFICATION
+                if (member !== from && (!onlineUsers[member] || onlineUsers[member].length === 0)) {
+
+                    let bodyText = "Document received"
+
+                    if (fileType === "image") bodyText = "📷 Image in group"
+                    else if (fileType === "video") bodyText = "🎥 Video in group"
+                    else if (fileType === "audio") bodyText = "🎧 Audio in group"
+                    else bodyText = "📄 File in group"
+
+                    subscriptions
+                        .filter(s => s.email === member)
+                        .forEach(s => {
+                            webpush.sendNotification(
+                                s.sub,
+                                JSON.stringify({
+                                    title: "New Group Message",
+                                    body: bodyText,
+                                    url: "/chat.html"
+                                })
+                            )
+                        })
+                }
             }
 
         } else {
@@ -530,7 +581,7 @@ else if (req.file.mimetype.startsWith("audio")) {
                 to,
                 message: fileName,
                 originalName,
-                type:fileType
+                type: fileType
             })
 
             const receiverSocketId = onlineUsers[to]
@@ -544,6 +595,29 @@ else if (req.file.mimetype.startsWith("audio")) {
             const senderSocketId = onlineUsers[from]
             if (senderSocketId) {
                 io.to(senderSocketId).emit("receive-message", newMessage)
+            }
+            // 🔥 PUSH NOTIFICATION FOR FILES
+            if (!onlineUsers[to] || onlineUsers[to].length === 0) {
+
+                let bodyText = "Document received"
+
+                if (fileType === "image") bodyText = "📷 Image received"
+                else if (fileType === "video") bodyText = "🎥 Video received"
+                else if (fileType === "audio") bodyText = "🎧 Audio received"
+                else if (fileType === "pdf" || fileType === "word" || fileType === "text") bodyText = "📄 Document received"
+
+                subscriptions
+                    .filter(s => s.email === to)
+                    .forEach(s => {
+                        webpush.sendNotification(
+                            s.sub,
+                            JSON.stringify({
+                                title: "New Message",
+                                body: bodyText,
+                                url: "/chat.html"
+                            })
+                        )
+                    })
             }
         }
 
@@ -686,6 +760,23 @@ io.on("connection", (socket) => {
         if (senderSocketId) {
             io.to(senderSocketId).emit("receive-message", newMessage)
         }
+        // 🔥 SEND NOTIFICATION ONLY IF USER OFFLINE
+        let bodyText = message
+
+        // emoji support already works automatically
+
+        subscriptions
+            .filter(s => s.email === to)
+            .forEach(s => {
+                webpush.sendNotification(
+                    s.sub,
+                    JSON.stringify({
+                        title: "New Message",
+                        body: bodyText,
+                        url: "/chat.html"
+                    })
+                )
+            })
     })
     socket.on("group-message", async ({ groupId, from, message }) => {
 
@@ -707,6 +798,27 @@ io.on("connection", (socket) => {
                 io.to(memberSocket).emit("receive-message", newMessage)
             }
         }
+        // 🔥 GROUP TEXT NOTIFICATION
+        for (let member of group.members) {
+
+            if (member === from) continue
+
+            if (!onlineUsers[member] || onlineUsers[member].length === 0) {
+
+                subscriptions
+                    .filter(s => s.email === member)
+                    .forEach(s => {
+                        webpush.sendNotification(
+                            s.sub,
+                            JSON.stringify({
+                                title: "New Group Message",
+                                body: message,
+                                url: "/chat.html"
+                            })
+                        )
+                    })
+            }
+        }
     })
     socket.on("mark-seen", async ({ from, to }) => {
         await Message.updateMany({
@@ -726,6 +838,9 @@ io.on("connection", (socket) => {
     })
     socket.on("disconnect", () => {
 
+        console.log("❌ Disconnected:", socket.userEmail)
+
+        // ✅ REMOVE FROM ONLINE USERS
         for (let email in onlineUsers) {
 
             onlineUsers[email] = onlineUsers[email].filter(
@@ -738,21 +853,91 @@ io.on("connection", (socket) => {
 
         }
 
+        // 🔥 REMOVE FROM ACTIVE CALLS
+        for (let groupId in activeCalls) {
+
+            const call = activeCalls[groupId]
+
+            if (call.users.includes(socket.userEmail)) {
+
+                call.users = call.users.filter(u => u !== socket.userEmail)
+
+                console.log("👤 Removed from call:", socket.userEmail)
+
+                // ✅ DELETE CALL IF EMPTY
+                if (call.users.length === 0) {
+                    delete activeCalls[groupId]
+                    console.log("🗑️ Call removed:", groupId)
+                }
+            }
+        }
+
     })
     // User calling someone
     socket.on("call-user", ({ to, offer, from, type }) => {
+        console.log("call-user function from server")
+        console.log("call-user to: ", to, " from: ", from, " type: ", type, " offer: ", offer)
 
         const receiverSockets = onlineUsers[to]
+        console.log("call-user receiversockets: ", receiverSockets)
 
         if (receiverSockets) {
             receiverSockets.forEach(id => {
                 io.to(id).emit("incoming-call", {
                     from,
-                    offer,
+                    offer: offer || null,
                     type
                 })
             })
         }
+        let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
+
+        if (!activeUsers[to]) {
+
+            subscriptions
+                .filter(s => s.email === to)
+                .forEach(s => {
+                    webpush.sendNotification(
+                        s.sub,
+                        JSON.stringify({
+                            title: "Incoming Call",
+                            body: callTypeText + " from " + from,
+                            url: type === "video"
+                                ? "/videocall.html"
+                                : "/voicechat.html"
+                        })
+                    )
+                })
+        }
+    })
+    socket.on("normal-call", ({ to, from, type }) => {
+
+        const receiverSockets = onlineUsers[to]
+        console.log("normal-call from server.js is receiving")
+        console.log("receiversockets from normal-call in server: ", receiverSockets)
+
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("incoming-normal-call", {
+                    from,
+                    type
+                })
+            })
+        }
+
+        // 🔥 push notification
+        subscriptions
+            .filter(s => s.email === to)
+            .forEach(s => {
+                webpush.sendNotification(
+                    s.sub,
+                    JSON.stringify({
+                        title: "Incoming Call",
+                        body: `📞 Voice call from ${from}`,
+                        url: "/voicechat.html"
+                    })
+                )
+            })
     })
 
     // Receiver answering call
@@ -778,6 +963,43 @@ io.on("connection", (socket) => {
             })
         }
     })
+    socket.on("voice-call-start", ({ to, from, type }) => {
+
+        console.log("📞 voice-call-start:", from, "→", to)
+
+        // 🔥 CREATE ROOM LIKE GROUP CALL
+        const roomId = [from, to].sort().join("-")
+
+        activeCalls[roomId] = {
+            users: [from] // 👈 VERY IMPORTANT
+        }
+
+        const receiverSockets = onlineUsers[to]
+
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("incoming-call", {
+                    from,
+                    offer: null,
+                    type
+                })
+            })
+        }
+
+        // 🔔 push notification
+        subscriptions
+            .filter(s => s.email === to)
+            .forEach(s => {
+                webpush.sendNotification(
+                    s.sub,
+                    JSON.stringify({
+                        title: "Incoming Call",
+                        body: `📞 Voice call from ${from}`,
+                        url: "/voicechat.html"
+                    })
+                )
+            })
+    })
 
     // ICE candidate exchange
     socket.on("ice-candidate", ({ to, candidate }) => {
@@ -796,6 +1018,44 @@ io.on("connection", (socket) => {
             })
         }
     })
+    //join-Call
+    socket.on("join-call", ({ user1, user2 }) => {
+        console.log("user joined call through server")
+        console.log("users are ", user1, " and ", user2)
+
+        const roomId = [user1, user2].sort().join("-")
+
+        if (!activeCalls[roomId]) {
+            activeCalls[roomId] = {
+                users: []
+            }
+        }
+
+        if (!activeCalls[roomId].users.includes(socket.userEmail)) {
+            activeCalls[roomId].users.push(socket.userEmail)
+        }
+
+        // 🔥 Notify others (LIKE GROUP CALL)
+        activeCalls[roomId].users.forEach(user => {
+
+            if (user !== socket.userEmail) {
+
+                const sockets = onlineUsers[user]
+
+                if (sockets) {
+                    sockets.forEach(id => {
+                        io.to(id).emit("user-joined-call", {
+                            user: socket.userEmail
+                        })
+                    })
+                }
+
+            }
+
+        })
+
+    })
+    //end-call
     socket.on("end-call", async ({ to, from, type, duration }) => {
 
         const receiverSocket = onlineUsers[to]
@@ -805,6 +1065,8 @@ io.on("connection", (socket) => {
                 io.to(id).emit("call-ended")
             })
         }
+
+        delete activeCalls[to]
 
         await Call.create({
             caller: from,
@@ -827,12 +1089,86 @@ io.on("connection", (socket) => {
         })
 
     })
+    //active sockets
+    socket.on("user-active", (email) => {
+        activeUsers[email] = true
+    })
+
+    socket.on("user-inactive", (email) => {
+        activeUsers[email] = false
+    })
+    //Request offer
+    // socket.on("request-offer", ({ to, from }) => {
+
+    //     const callerSockets = onlineUsers[to]
+
+    //     if (callerSockets) {
+    //         callerSockets.forEach(id => {
+    //             io.to(id).emit("resend-offer", {
+    //                 to: from
+    //             })
+    //         })
+    //     }
+
+    // })
+    socket.on("request-offer", ({ from }) => {
+
+        for (let roomId in activeCalls) {
+
+            const call = activeCalls[roomId]
+
+            if (call.users.includes(from)) {
+
+                call.users.forEach(user => {
+
+                    if (user !== from) {
+
+                        const sockets = onlineUsers[user]
+
+                        if (sockets) {
+                            sockets.forEach(id => {
+                                io.to(id).emit("resend-offer", {
+                                    to: from
+                                })
+                            })
+                        }
+
+                    }
+
+                })
+            }
+        }
+    })
+    //Resend offer
+    socket.on("resend-offer", ({ to, offer, from, type }) => {
+
+        const receiverSockets = onlineUsers[to]
+
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("incoming-call", {
+                    from,
+                    offer,
+                    type
+                })
+            })
+        }
+
+    })
     // GROUP CALL START
     socket.on("group-call", async ({ groupId, from, type }) => {
 
         const group = await Group.findById(groupId)
 
         if (!group) return
+        if (activeCalls[groupId]) {
+            console.log("⚠️ Call already exists")
+            return
+        }
+        activeCalls[groupId] = {
+            type,
+            users: [from]
+        }
 
         group.members.forEach(member => {
 
@@ -851,6 +1187,39 @@ io.on("connection", (socket) => {
 
                 })
             }
+            // if (!onlineUsers[member] || onlineUsers[member].length === 0) {
+
+            //     subscriptions
+            //         .filter(s => s.email === member)
+            //         .forEach(s => {
+            //             webpush.sendNotification(
+            //                 s.sub,
+            //                 JSON.stringify({
+            //                     title: "Group Call",
+            //                     body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${from}`,
+            //                     url: type === "video" ? "/groupvideocall.html" : "/groupvoicecall.html"
+            //                 })
+            //             )
+            //         })
+            // }
+            const userSubs = subscriptions.filter(s => s.email === member)
+
+            console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
+
+            userSubs.forEach(s => {
+                webpush.sendNotification(
+                    s.sub,
+                    JSON.stringify({
+                        title: "Group Call",
+                        body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${from}`,
+                        url: type === "video"
+                            ? "/groupvideocall.html"
+                            : "/groupvoicecall.html"
+                    })
+                ).catch(err => {
+                    console.log("❌ Push failed:", err.message)
+                })
+            })
 
         })
 
@@ -867,13 +1236,49 @@ io.on("connection", (socket) => {
         }
 
     })
+    socket.on("notify-existing-users", ({ to, from }) => {
+
+        const sockets = onlineUsers[to]
+
+        if (sockets) {
+            sockets.forEach(id => {
+                io.to(id).emit("existing-user", {
+                    user: from
+                })
+            })
+        }
+
+    })
     socket.on("join-group-call", ({ groupId, user }) => {
 
         socket.join(groupId)
+        console.log("📥 JOIN GROUP CALL:", groupId, user)
 
-        socket.to(groupId).emit("user-joined-call", {
-            user
-        })
+        // ✅ CHECK ACTIVE CALL
+        const call = activeCalls[groupId]
+
+        if (call) {
+
+            // notify existing users
+            call.users.forEach(existingUser => {
+
+                const sockets = onlineUsers[existingUser]
+
+                if (sockets) {
+                    sockets.forEach(id => {
+                        io.to(id).emit("user-joined-call", {
+                            user
+                        })
+                    })
+                }
+            })
+
+            // add new user
+            if (!call.users.includes(user)) {
+                call.users.push(user)
+            }
+        }
+
 
     })
 })
@@ -1028,7 +1433,7 @@ app.get("/calls/:email", async (req, res) => {
             direction: direction,
             duration: call.duration,
             time: call.timestamp,
-            missed:call.missed
+            missed: call.missed
         })
 
     }
