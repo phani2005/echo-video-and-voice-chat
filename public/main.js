@@ -1,18 +1,18 @@
 const loggedUserEmail = localStorage.getItem("loggedUser")
-const socket = io(window.location.origin)
+// const socket = io(window.location.origin)
 
-if (loggedUserEmail) {
-    socket.emit("register-user", loggedUserEmail)
-}
-socket.on("receive-message", (msg) => {
-    console.log("🔥 New message received in main:", msg)
+// if (loggedUserEmail) {
+//     socket.emit("register-user", loggedUserEmail)
+// }
+// socket.on("receive-message", (msg) => {
+//     console.log("🔥 New message received in main:", msg)
 
-    // reload contacts automatically
-    loadContacts()
-})
-socket.on("messages-seen", () => {
-    loadContacts()
-})
+//     // reload contacts automatically
+//     loadContacts()
+// })
+// socket.on("messages-seen", () => {
+//     loadContacts()
+// })
 async function loadContacts() {
 
     // const res = await fetch(`/getcontacts/${loggedUserEmail}`)
