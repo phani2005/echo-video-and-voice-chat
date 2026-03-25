@@ -10,9 +10,7 @@ self.addEventListener("push", function (event) {
         body: data.body,
         icon: "/icon.png",
         badge: "/icon.png",
-        data: {
-            url: data.url
-        }
+        data: data
     }
 
     event.waitUntil(
