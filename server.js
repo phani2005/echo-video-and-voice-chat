@@ -576,14 +576,21 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                     else if (fileType === "audio") bodyText = "🎧 Audio in group"
                     else bodyText = "📄 File in group"
 
-                    const subs = await Subscription.find({ email: to })
+                    const subs = await Subscription.find({ email: member })
+                    const groupname=group.name
+                    const senderUser = await User.findOne({ email: from })
+
+const senderName = senderUser
+    ? senderUser.username
+    : from
+
 
                     subs.forEach(s => {
                         webpush.sendNotification(
                             s.sub,
                             JSON.stringify({
-                                title: "New Message",
-                                body: bodyText,
+                                title: groupname,
+                                body: `${senderName}:${bodyText}`,
                                 url: "/chat.html",
                             })
                         )
@@ -838,6 +845,7 @@ const senderName = senderUser
 
                 const subs = await Subscription.find({ email: member })
                 const senderUser = await User.findOne({ email: from })
+                const groupname=group.name
 
 const senderName = senderUser
     ? senderUser.username
@@ -847,8 +855,8 @@ const senderName = senderUser
                     webpush.sendNotification(
                         s.sub,
                         JSON.stringify({
-                            title: senderName,
-                            body: message,
+                            title: groupname,
+                            body: `${senderName}:${message}`,
                             url: "/chat.html"
                         })
                     )
