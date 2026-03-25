@@ -820,7 +820,7 @@ io.on("connection", (socket) => {
 
             if (member === from) continue
 
-            // if (!onlineUsers[member] || onlineUsers[member].length === 0) {
+            if (!onlineUsers[member] || onlineUsers[member].length === 0) {
 
                 const subs = await Subscription.find({ email: member })
 
@@ -834,7 +834,7 @@ io.on("connection", (socket) => {
                         })
                     )
                 })
-            // }
+            }
         }
     })
     socket.on("mark-seen", async ({ from, to }) => {
