@@ -584,7 +584,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                             JSON.stringify({
                                 title: "New Message",
                                 body: bodyText,
-                                url: "/chat.html"
+                                url: "/chat.html",
                             })
                         )
                     })
@@ -623,15 +623,22 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 else if (fileType === "audio") bodyText = "🎧 Audio received"
                 else if (fileType === "pdf" || fileType === "word" || fileType === "text") bodyText = "📄 Document received"
 
-                const subs = await Subscription.find({ email: member })
+                const subs = await Subscription.find({ email: to })
+                const senderUser = await User.findOne({ email: from })
+
+                const senderName = senderUser
+                                   ? senderUser.username
+                                   : from
 
                 subs.forEach(s => {
                     webpush.sendNotification(
                         s.sub,
                         JSON.stringify({
-                            title: "New Message",
+                            title: senderName,
                             body: bodyText,
-                            url: "/chat.html"
+                            url: "/chat.html",
+                            from:from,
+                            type:"file"
                         })
                     )
                 })
@@ -783,14 +790,21 @@ io.on("connection", (socket) => {
         // emoji support already works automatically
 
         const subs = await Subscription.find({ email: to })
+        const senderUser = await User.findOne({ email: from })
+
+const senderName = senderUser
+    ? senderUser.username
+    : from
 
         subs.forEach(s => {
             webpush.sendNotification(
                 s.sub,
                 JSON.stringify({
-                    title: "New Message",
+                    title: senderName,
                     body: bodyText,
-                    url: "/chat.html"
+                    url: "/chat.html",
+                    from:from,
+                    type:"message"
                 })
             )
         })
@@ -823,12 +837,17 @@ io.on("connection", (socket) => {
             if (!onlineUsers[member] || onlineUsers[member].length === 0) {
 
                 const subs = await Subscription.find({ email: member })
+                const senderUser = await User.findOne({ email: from })
+
+const senderName = senderUser
+    ? senderUser.username
+    : from
 
                 subs.forEach(s => {
                     webpush.sendNotification(
                         s.sub,
                         JSON.stringify({
-                            title: "New Group Message",
+                            title: senderName,
                             body: message,
                             url: "/chat.html"
                         })
