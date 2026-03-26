@@ -14,9 +14,9 @@ async function getUser() {
 
     loadContacts()
 }
+const socket = io(window.location.origin)
 
 getUser()
-const socket = io(window.location.origin)
 
 // if (loggedUserEmail) {
 //     socket.emit("register-user", loggedUserEmail)
