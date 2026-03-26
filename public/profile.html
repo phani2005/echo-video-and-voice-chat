@@ -14,8 +14,7 @@
         <h2>My Profile</h2>
 
         <!-- Clickable Profile Image -->
-        <img id="profileImg"
-             style="width:150px;height:150px;border-radius:50%;object-fit:cover;cursor:pointer">
+        <img id="profileImg" style="width:150px;height:150px;border-radius:50%;object-fit:cover;cursor:pointer">
 
         <h3 id="username"></h3>
         <p id="email"></p>
@@ -43,8 +42,7 @@
             padding:15px;
             background:rgba(0,0,0,0.6);
         ">
-            <button onclick="closeImageModal()"
-                    style="background:red;color:white;
+            <button onclick="closeImageModal()" style="background:red;color:white;
                            border:none;padding:8px 15px;
                            border-radius:5px;">
                 Close
@@ -58,23 +56,45 @@
             align-items:center;
             height:90%;
         ">
-            <img id="modalImage"
-                 style="max-width:95%;max-height:95%;object-fit:contain;">
+            <img id="modalImage" style="max-width:95%;max-height:95%;object-fit:contain;">
         </div>
     </div>
 
-
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const socket = io(window.location.origin)
 
-        const loggedEmail = localStorage.getItem("loggedUser")
+        let loggedEmail = ""
+
+        async function getUser() {
+
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+
+            const data = await res.json()
+
+            loggedEmail = data.email
+
+            socket.emit("register-user", loggedEmail)
+            loadProfile()
+        }
+
+        getUser()
 
         async function loadProfile() {
 
             try {
+                if (!loggedEmail) {
+                    console.log("❌ Email not loaded yet")
+                    return
+                }
 
                 const encodedEmail = encodeURIComponent(loggedEmail)
 
-                const res = await fetch(`/get-profile/${encodedEmail}`)
+                const res = await fetch(`/get-profile/${encodedEmail}`, {
+                    credentials: "include"
+                })
 
                 if (!res.ok) {
                     throw new Error("Profile not found")
@@ -116,7 +136,7 @@
         }
 
         // Close when clicking outside image
-        document.getElementById("imageModal").addEventListener("click", function(e) {
+        document.getElementById("imageModal").addEventListener("click", function (e) {
             if (e.target.id === "imageModal") {
                 closeImageModal()
             }
@@ -126,9 +146,10 @@
             window.location.href = "/main.html"
         }
 
-        loadProfile()
+        // loadProfile()
 
     </script>
 
 </body>
+
 </html>
