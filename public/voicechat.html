@@ -115,7 +115,7 @@
     <audio id="remoteAudio" autoplay playsinline></audio>
 
 
-    <div id="incomingCallBox" style="
+    <!-- <div id="incomingCallBox" style="
 display:none;
 position:fixed;
 top:0;
@@ -154,7 +154,7 @@ cursor:pointer;
             Reject
         </button>
 
-    </div>
+    </div> -->
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
@@ -165,11 +165,37 @@ cursor:pointer;
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
-        const loggedUser = localStorage.getItem("loggedUser")
-        const receiver = localStorage.getItem("chatWith")
+        let loggedUser = ""
+
+        async function getUser() {
+
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+
+            const data = await res.json()
+
+            loggedUser = data.email
+
+            socket.emit("register-user", loggedUser)
+        }
+
+        getUser()
+        let receiver = localStorage.getItem("chatWith")
+
+        const params = new URLSearchParams(window.location.search)
+        const fromParam = params.get("from")
+
+        if (fromParam) {
+            receiver = fromParam
+            localStorage.setItem("chatWith", fromParam)
+            //new values
+            localStorage.removeItem("chatName")
+            localStorage.removeItem("chatDp")
+        }
         const callType = localStorage.getItem("callType")
 
-        socket.emit("register-user", loggedUser)
+        // socket.emit("register-user", loggedUser)
 
         let localStream
         let peers = {}
@@ -189,16 +215,29 @@ cursor:pointer;
                 })
             }
         }
-        document.getElementById("contactName").innerText =
-            localStorage.getItem("chatName") || receiver
+        // document.getElementById("contactName").innerText =
+        //     localStorage.getItem("chatName") || receiver
 
-        const dp = localStorage.getItem("chatDp")
+        // const dp = localStorage.getItem("chatDp")
 
-        if (dp) {
-            document.getElementById("contactDp").src = dp
-        } else {
-            document.getElementById("contactDp").src = "/profilephotodefault.png"
+        // if (dp) {
+        //     document.getElementById("contactDp").src = dp
+        // } else {
+        //     document.getElementById("contactDp").src = "/profilephotodefault.png"
+        // }
+        async function loadCallerDetails() {
+
+            const res = await fetch(`/get-profile/${receiver}`)
+            const data = await res.json()
+
+            document.getElementById("contactName").innerText =
+                data.username || receiver
+
+            document.getElementById("contactDp").src =
+                data.profileimage || "/profilephotodefault.png"
         }
+
+        loadCallerDetails()
 
         /* ---------------- TIMER ---------------- */
 
