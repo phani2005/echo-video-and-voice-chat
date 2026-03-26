@@ -232,26 +232,24 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 //             </script>`)
 //     }
 // })
-app.post("/subscribe",verifyUser, async (req, res) => {
+app.post("/subscribe", verifyUser, async (req, res) => {
 
     const { email, subscription } = req.body
 
     try {
 
-        const exists = await Subscription.findOne({
-            email,
+        // 🔥 REMOVE OLD USER USING SAME DEVICE
+        await Subscription.deleteMany({
             "sub.endpoint": subscription.endpoint
         })
 
-        if (!exists) {
-            await Subscription.create({
-                email,
-                sub: subscription
-            })
-            console.log("📱 NEW DEVICE ADDED:", email)
-        } else {
-            console.log("⚡ Already subscribed:", email)
-        }
+        // 🔥 ADD NEW
+        await Subscription.create({
+            email,
+            sub: subscription
+        })
+
+        console.log("📱 SUBSCRIBED:", email)
 
         res.json({ success: true })
 
@@ -320,7 +318,25 @@ app.get("/", (req, res) => {
 app.get("/login", (req, res) => {
     res.redirect("/login.html")
 })
+app.post("/unsubscribe", verifyUser, async (req, res) => {
 
+    try {
+        const { endpoint } = req.body
+
+        await Subscription.deleteOne({
+            "sub.endpoint": endpoint
+        })
+
+        console.log("🗑️ Subscription removed:", endpoint)
+
+        res.json({ success: true })
+
+    } catch (err) {
+        console.log("UNSUBSCRIBE ERROR:", err)
+        res.status(500).json({ success: false })
+    }
+
+})
 app.post("/create-group", upload.single("photo"), async (req, res) => {
 
     const { groupName, members, admin } = req.body
