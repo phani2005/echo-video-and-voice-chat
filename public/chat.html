@@ -677,6 +677,8 @@
 
                 // 🔥 ONLY MARK SEEN IF CURRENT CHAT MATCHES
                 if (
+                    isActive &&                         // 🔥 important
+                    document.hasFocus() &&             // 🔥 very important
                     !msgObj.isGroup &&
                     msgObj.from === receiverEmail
                 ) {
@@ -689,6 +691,8 @@
 
                 // 🔥 FOR GROUP
                 if (
+                    isActive &&
+                    document.hasFocus() &&
                     msgObj.isGroup &&
                     msgObj.groupId?.toString() === receiverEmail
                 ) {
