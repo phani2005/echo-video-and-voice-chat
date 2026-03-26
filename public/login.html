@@ -39,13 +39,14 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password }),
+            credentials:"include"
         })
 
         const data = await res.json()
 
         if (data.success) {
-            localStorage.setItem("loggedUser", data.email)
+            // localStorage.setItem("loggedUser", data.email)
             window.location.href = "/main.html"
         } else {
             alert(data.message)
