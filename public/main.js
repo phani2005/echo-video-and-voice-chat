@@ -200,10 +200,34 @@ function openCreateGroup() {
 }
 async function logout() {
 
+    // 🔥 GET SERVICE WORKER
+    const registration = await navigator.serviceWorker.ready
+
+    const subscription = await registration.pushManager.getSubscription()
+
+    if (subscription) {
+
+        // 🔥 REMOVE FROM DB
+        await fetch("/unsubscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                endpoint: subscription.endpoint
+            })
+        })
+
+        // 🔥 REMOVE FROM BROWSER
+        await subscription.unsubscribe()
+    }
+
+    // 🔥 LOGOUT USER
     await fetch("/logout", {
         method: "POST",
         credentials: "include"
     })
+
+    localStorage.clear()
 
     window.location.href = "/login.html"
 }
