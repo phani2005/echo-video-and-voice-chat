@@ -1,5 +1,5 @@
 let loggedUserEmail = ""
-
+const socket = io(window.location.origin)
 async function getUser() {
 
     const res = await fetch("/me", {
@@ -14,7 +14,7 @@ async function getUser() {
 
     loadContacts()
 }
-const socket = io(window.location.origin)
+
 
 getUser()
 
