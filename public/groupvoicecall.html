@@ -122,8 +122,28 @@
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
-        const loggedUser = localStorage.getItem("loggedUser")
-        const groupId = localStorage.getItem("chatWith")
+        let loggedUser = ""
+
+        async function getUser() {
+
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+
+            const data = await res.json()
+
+            loggedUser = data.email
+
+            socket.emit("register-user", loggedUser)
+        }
+
+        getUser()
+        const params = new URLSearchParams(window.location.search)
+
+        let groupId = params.get("from") || localStorage.getItem("chatWith")
+
+        localStorage.setItem("chatWith", groupId)
+        localStorage.setItem("isGroup", "true")
         const usersGrid = document.getElementById("usersGrid")
 
         let groupMembers = []
