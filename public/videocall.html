@@ -21,7 +21,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             background: black;
         }
 
@@ -105,9 +105,14 @@
             <i class="fa-solid fa-video"></i>
         </button>
 
-        <!-- <button class="btn camera" onclick="switchCamera()">
-            <i class="fa-solid fa-rotate" id="rotate"></i>
-        </button> -->
+        <button class="btn camera" id="screenBtn" onclick="shareScreen()">
+            <i class="fa-solid fa-display"></i>
+        </button>
+
+        <!-- 🔥 SWITCH CAMERA -->
+        <button class="btn camera" id="switchBtn" onclick="switchCamera()">
+            <i class="fa-solid fa-rotate"></i>
+        </button>
 
         <button class="btn end" onclick="endCall()">
             <i class="fa-solid fa-phone-slash"></i>
@@ -122,11 +127,34 @@
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
-        const loggedUser = localStorage.getItem("loggedUser")
-        const receiver = localStorage.getItem("chatWith")
+        let loggedUser = ""
+
+        async function getUser() {
+
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+
+            const data = await res.json()
+
+            loggedUser = data.email
+
+            socket.emit("register-user", loggedUser)
+        }
+
+        getUser()
+        let receiver = localStorage.getItem("chatWith")
+
+        const params = new URLSearchParams(window.location.search)
+        const fromParam = params.get("from")
+
+        if (fromParam) {
+            receiver = fromParam
+            localStorage.setItem("chatWith", fromParam)
+        }
         const callType = localStorage.getItem("callType")
 
-        socket.emit("register-user", loggedUser)
+        // socket.emit("register-user", loggedUser)
 
         let localStream
         let peers = {}
@@ -134,6 +162,9 @@
         let timerInterval
         let isMuted = false
         let cameraOff = false
+        let screenSharing = false
+        let videoDevices = []
+        let currentCameraIndex = 0
 
         /* ---------------- STREAM ---------------- */
 
@@ -141,13 +172,13 @@
 
             if (!localStream) {
 
+                await getCameras()
+
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
+                    video: {
+                        deviceId: videoDevices[currentCameraIndex]?.deviceId
+                    },
+                    audio: true
                 })
 
                 document.getElementById("localVideo").srcObject = localStream
@@ -237,6 +268,153 @@
                 from: loggedUser,
                 type: "video"
             })
+        }
+        async function getCameras() {
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            videoDevices = devices.filter(d => d.kind === "videoinput")
+
+            console.log("📷 Cameras:", videoDevices)
+        }
+        async function shareScreen() {
+
+            try {
+
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true
+                })
+
+                const screenTrack = screenStream.getVideoTracks()[0]
+
+                Object.values(peers).forEach(peer => {
+                    const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+                    if (sender) sender.replaceTrack(screenTrack)
+                })
+
+                document.getElementById("localVideo").srcObject = screenStream
+
+                screenSharing = true
+                document.getElementById("screenBtn").style.background = "green"
+
+                screenTrack.onended = () => stopScreenShare()
+
+            } catch (err) {
+                console.log("❌ Screen share error:", err)
+            }
+        }
+
+        function stopScreenShare() {
+
+            const videoTrack = localStream.getVideoTracks()[0]
+
+            Object.values(peers).forEach(peer => {
+                const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+                if (sender) sender.replaceTrack(videoTrack)
+            })
+
+            document.getElementById("localVideo").srcObject = localStream
+
+            screenSharing = false
+            document.getElementById("screenBtn").style.background = "#333"
+        }
+        function replaceVideoTrack(newTrack) {
+
+            Object.values(peers).forEach(peer => {
+                const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+                if (sender) sender.replaceTrack(newTrack)
+            })
+        }
+
+        async function switchCamera() {
+
+            try {
+
+                if (!localStream) return
+
+                if (videoDevices.length < 2) {
+                    alert("No secondary camera")
+                    return
+                }
+
+                const oldTrack = localStream.getVideoTracks()[0]
+                oldTrack.stop()
+
+                currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length
+
+                const newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: {
+                            exact: videoDevices[currentCameraIndex].deviceId
+                        }
+                    }
+                })
+
+                const newTrack = newStream.getVideoTracks()[0]
+
+                replaceVideoTrack(newTrack)
+
+                localStream.removeTrack(oldTrack)
+                localStream.addTrack(newTrack)
+
+                document.getElementById("localVideo").srcObject = localStream
+                document.getElementById("localVideo").onclick = swapVideos
+                document.getElementById("remoteVideo").onclick = swapVideos
+
+                console.log("✅ Camera switched")
+
+                const btn = document.getElementById("switchBtn")
+                btn.style.background = "green"
+
+                setTimeout(() => {
+                    btn.style.background = "#333"
+                }, 500)
+
+            } catch (err) {
+                console.log("❌ Switch camera error:", err)
+            }
+        }
+        let isSwapped = false
+
+        function swapVideos() {
+
+            const local = document.getElementById("localVideo")
+            const remote = document.getElementById("remoteVideo")
+
+            if (!isSwapped) {
+
+                // 🔥 MAKE LOCAL BIG
+                local.style.width = "100%"
+                local.style.height = "100%"
+                local.style.top = "0"
+                local.style.right = "0"
+                local.style.border = "none"
+
+                // 🔥 MAKE REMOTE SMALL
+                remote.style.width = "120px"
+                remote.style.height = "170px"
+                remote.style.position = "absolute"
+                remote.style.right = "15px"
+                remote.style.top = "80px"
+                remote.style.border = "2px solid white"
+                remote.style.borderRadius = "12px"
+
+            } else {
+
+                // 🔥 BACK TO NORMAL
+                remote.style.width = "100%"
+                remote.style.height = "100%"
+                remote.style.top = "0"
+                remote.style.right = "0"
+                remote.style.border = "none"
+
+                local.style.width = "120px"
+                local.style.height = "170px"
+                local.style.right = "15px"
+                local.style.top = "80px"
+                local.style.border = "2px solid white"
+                local.style.borderRadius = "12px"
+            }
+
+            isSwapped = !isSwapped
         }
 
         /* ---------------- USER JOINED ---------------- */
