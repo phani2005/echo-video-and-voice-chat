@@ -22,20 +22,48 @@ self.addEventListener("notificationclick", function (event) {
 
     event.notification.close()
 
-    const data = event.notification.data
+    const data = event.notification.data || {}
 
     let url = data.url || "/chat.html"
 
-    if (data.type === "voice") {
+    const params = `?from=${data.from || ""}&type=${data.type || ""}&isGroup=${data.isGroup || false}`
+
+    if (data.isGroup && data.type === "voice") {
+        url = "/groupvoicecall.html"
+    }
+    else if (data.isGroup && data.type === "video") {
+        url = "/groupvideocall.html"
+    }
+    else if (data.type === "voice") {
         url = "/voicechat.html"
-    } else if (data.type === "video") {
+    }
+    else if (data.type === "video") {
         url = "/videocall.html"
     }
 
-    // 🔥 PASS DATA USING URL PARAMS
-    url += `?from=${data.from}&type=${data.type}`
-
     event.waitUntil(
-        clients.openWindow(url)
+        clients.matchAll({ type: "window", includeUncontrolled: true })
+            .then(clientList => {
+
+                // 🔥 FOR CALLS → ALWAYS OPEN NEW PAGE
+                if (data.type === "voice" || data.type === "video") {
+                    return clients.openWindow(url + params)
+                }
+
+                // 🔥 FOR CHAT → reuse tab
+                for (const client of clientList) {
+                    if ("focus" in client) {
+                        client.focus()
+                        client.postMessage({
+                            action: "open-chat",
+                            data: data
+                        })
+                        return
+                    }
+                }
+
+                return clients.openWindow(url + params)
+
+            })
     )
 })
