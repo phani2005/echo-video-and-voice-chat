@@ -96,7 +96,7 @@
         const emojiPicker = document.getElementById("emojiPicker")
         const menuBtn = document.getElementById("menuBtn")
         const dropdownMenu = document.getElementById("dropdownMenu")
-        const isGroup = localStorage.getItem("isGroup") === "true"
+        // const isGroup = localStorage.getItem("isGroup") === "true"
         let contactNames = {}
         async function requestPermission() {
             const permission = await Notification.requestPermission()
@@ -250,7 +250,8 @@
 
             const res = await fetch("/upload-message", {
                 method: "POST",
-                body: formData
+                body: formData,
+                credentials:"include"
             })
 
             if (!res.ok) {
@@ -284,8 +285,43 @@
         //     transports: ["websocket"]
         // })
         const socket = io(window.location.origin)
-        const loggedUser = localStorage.getItem("loggedUser")
-        const receiverEmail = localStorage.getItem("chatWith")
+        let loggedUser = ""
+
+        async function getUser() {
+
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+
+            const data = await res.json()
+
+            loggedUser = data.email
+
+            socket.emit("register-user", loggedUser)
+
+            initChat()
+        }
+
+        getUser()
+        let receiverEmail = localStorage.getItem("chatWith")
+
+        // 🔥 READ URL PARAMS
+        const params = new URLSearchParams(window.location.search)
+
+        const fromParam = params.get("from")
+        const isGroupParam = params.get("isGroup")
+
+        if (fromParam) {
+            receiverEmail = fromParam
+            localStorage.setItem("chatWith", fromParam)
+
+            if (isGroupParam === "true") {
+                localStorage.setItem("isGroup", "true")
+            } else {
+                localStorage.setItem("isGroup", "false")
+            }
+        }
+        const isGroup = localStorage.getItem("isGroup") === "true"
         console.log("Logged user:", loggedUser)
         console.log("Receiver:", receiverEmail)
 
@@ -304,7 +340,7 @@
             socket.emit("user-inactive", loggedUser)
         })
         // loadContacts()
-        initChat()
+        // initChat()
         const urlParams = new URLSearchParams(window.location.search)
         const isCallOpen = urlParams.get("call") === "true"
 
@@ -321,6 +357,9 @@
         async function initChat() {
 
             await loadContacts()     // wait until contacts are loaded
+            if (isGroup) {
+                localStorage.setItem("chatWith", receiverEmail)
+            }
 
             await loadOldMessages()  // then load messages
 
@@ -353,7 +392,9 @@
         // 🔥 LOAD OLD MESSAGES WHEN PAGE OPENS
         async function loadOldMessages() {
 
-            const res = await fetch(`/messages/${loggedUser}/${receiverEmail}?isGroup=${isGroup}`)
+            const res = await fetch(`/messages/${loggedUser}/${receiverEmail}?isGroup=${isGroup}`,{
+                credentials:"include"
+            })
 
             const data = await res.json()
 
@@ -361,7 +402,15 @@
             if (!isGroup) {
                 socket.emit("mark-seen", {
                     from: receiverEmail,
-                    to: loggedUser
+                    to: loggedUser,
+                    isGroup: false
+                })
+            }
+            if (isGroup) {
+                socket.emit("mark-seen", {
+                    from: loggedUser,
+                    to: receiverEmail,
+                    isGroup: true
                 })
             }
 
@@ -434,7 +483,8 @@
                 body: JSON.stringify({
                     messageIds: Array.from(selectedMessages),
                     userEmail: loggedUser
-                })
+                }),
+                credentials:"include"
             })
 
             location.reload()
@@ -448,7 +498,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messageIds: Array.from(selectedMessages)
-                })
+                }),
+                credentials:"include"
             })
 
             // ✅ Replace message text visually
@@ -466,7 +517,9 @@
         })
         async function loadContacts() {
 
-            const res = await fetch(`/getcontacts/${loggedUser}`)
+            const res = await fetch(`/getcontacts/${loggedUser}`,{
+                credentials:"include"
+            })
             const contacts = await res.json()
 
             contacts.forEach(c => {
@@ -499,7 +552,8 @@
                 body: JSON.stringify({
                     user1: loggedUser,
                     user2: receiverEmail
-                })
+                }),
+                credentials:"include"
             })
 
             location.reload()
@@ -621,10 +675,29 @@
             } else {
                 addMessage(msgObj, "received")
 
-                socket.emit("mark-seen", {
-                    from: msgObj.from,
-                    to: loggedUser
-                })
+                // 🔥 ONLY MARK SEEN IF CURRENT CHAT MATCHES
+                if (
+                    !msgObj.isGroup &&
+                    msgObj.from === receiverEmail
+                ) {
+                    socket.emit("mark-seen", {
+                        from: msgObj.from,
+                        to: loggedUser,
+                        isGroup: false
+                    })
+                }
+
+                // 🔥 FOR GROUP
+                if (
+                    msgObj.isGroup &&
+                    msgObj.groupId?.toString() === receiverEmail
+                ) {
+                    socket.emit("mark-seen", {
+                        from: loggedUser,
+                        to: msgObj.groupId,
+                        isGroup: true
+                    })
+                }
             }
 
             chatBody.scrollTop = chatBody.scrollHeight
@@ -733,7 +806,8 @@
                 body: JSON.stringify({
                     email: localStorage.getItem("loggedUser"),
                     subscription
-                })
+                }),
+                credentials:"include"
             })
         }
 
@@ -765,6 +839,48 @@
 
         // 🔥 CALL ONLY ONCE
         setupNotifications()
+        navigator.serviceWorker.addEventListener("message", (event) => {
+
+            const { action, data, isCall } = event.data
+
+            if (action === "open-chat") {
+
+                console.log("📩 Opening from notification:", data)
+
+                localStorage.setItem("chatWith", data.from)
+
+                if (data.isGroup) {
+                    localStorage.setItem("isGroup", "true")
+                } else {
+                    localStorage.setItem("isGroup", "false")
+                }
+
+                // 🔥 FIX FOR CALLS
+                if (isCall) {
+
+                    localStorage.setItem("callType", "receiver")
+
+                    if (data.isGroup) {
+
+                        window.location.href =
+                            data.type === "video"
+                                ? "/groupvideocall.html"
+                                : "/groupvoicecall.html"
+
+                    } else {
+
+                        window.location.href =
+                            data.type === "video"
+                                ? "/videocall.html"
+                                : "/voicechat.html"
+                    }
+
+                    return
+                }
+
+                location.reload()
+            }
+        })
 
         function getDateLabel(date) {
 
