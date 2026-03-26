@@ -6,22 +6,28 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start":"node server.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "multer-storage-cloudinary": "^4.0.0",
-    "@sendgrid/mail": "^8.x",
-    "resend": "^3.x",
+    "@sendgrid/mail": "^8.1.6",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^1.41.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.2",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "resend": "^6.9.4",
     "simple-peer": "^9.11.1",
     "socket.io": "^4.8.3",
     "web-push": "^3.6.7"
