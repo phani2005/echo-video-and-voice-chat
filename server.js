@@ -578,8 +578,12 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                     io.to(memberSocket).emit("receive-message", newMessage)
                 }
                 // 🔥 GROUP FILE NOTIFICATION
-                if (member !== from && !activeUsers[member]) {
+                const isInSameGroup =
+                    activeChats[member] &&
+                    activeChats[member].chatId == to &&
+                    activeChats[member].isGroup === true
 
+                if (member !== from && !isInSameGroup) {
                     let bodyText = "Document received"
 
                     if (fileType === "image") bodyText = "📷 Image in group"
@@ -637,7 +641,12 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 io.to(senderSocketId).emit("receive-message", newMessage)
             }
             // 🔥 PUSH NOTIFICATION FOR FILES
-            if (!activeUsers[to]) {
+            const isInSameChat =
+                activeChats[to] &&
+                activeChats[to].chatId === from &&
+                activeChats[to].isGroup === false
+
+            if (!isInSameChat) {
 
                 let bodyText = "Document received"
 
@@ -821,7 +830,12 @@ io.on("connection", (socket) => {
             ? senderUser.username
             : from
 
-        if (!activeUsers[to]) {
+        const isInSameChat =
+            activeChats[to] &&
+            activeChats[to].chatId === from &&
+            activeChats[to].isGroup === false
+
+        if (!isInSameChat) {
 
             subs.forEach(s => {
                 webpush.sendNotification(
@@ -871,7 +885,7 @@ io.on("connection", (socket) => {
                 activeChats[member].chatId == groupId &&
                 activeChats[member].isGroup === true
 
-            if (!activeUsers[member] || !isInSameGroup) {
+            if (!isInSameGroup) {
 
                 const subs = await Subscription.find({ email: member })
                 const senderUser = await User.findOne({ email: from })
@@ -975,7 +989,12 @@ io.on("connection", (socket) => {
         }
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
 
-        if (!activeUsers[to]) {
+        const isInSameChat =
+            activeChats[to] &&
+            activeChats[to].chatId === from &&
+            activeChats[to].isGroup === false
+
+        if (!isInSameChat) {
 
             const subs = await Subscription.find({ email: to })
 
