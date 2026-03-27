@@ -194,6 +194,40 @@
                 input.focus()
             }
         })
+        const urlParams = new URLSearchParams(window.location.search)
+
+        const fromParam = urlParams.get("from")
+        const nameParam = urlParams.get("name")
+        const isGroupParam = urlParams.get("isGroup") === "true"
+        const openChat = urlParams.get("openChat") === "true"
+
+        // ✅ ONLY FOR NOTIFICATION CLICK
+        if (fromParam && openChat) {
+
+            console.log("🔥 Opening correct chat from notification:", fromParam)
+
+            // ✅ FORCE UPDATE
+            localStorage.setItem("chatWith", fromParam)
+            localStorage.setItem("isGroup", isGroupParam)
+
+            if (nameParam) {
+                localStorage.setItem("chatName", nameParam)
+            }
+            // 🔥 FORCE RELOAD (IMPORTANT)
+            const cleanUrl = `/chat.html?from=${fromParam}&isGroup=${isGroupParam}`
+
+            window.history.replaceState({}, "", cleanUrl)
+        }
+        let isGroup = false
+
+        if (fromParam && openChat) {
+            isGroup = isGroupParam
+        } else {
+            isGroup = localStorage.getItem("isGroup") === "true"
+        }
+        const isCallOpen = urlParams.get("call") === "true"
+        const receiverEmail = localStorage.getItem("chatWith")
+        console.log("✅ FINAL RECEIVER:", receiverEmail)
 
         emojiPicker.addEventListener("emoji-click", event => {
             input.value += event.detail.unicode
@@ -250,8 +284,7 @@
 
             const res = await fetch("/upload-message", {
                 method: "POST",
-                body: formData,
-                credentials:"include"
+                body: formData
             })
 
             if (!res.ok) {
@@ -285,43 +318,7 @@
         //     transports: ["websocket"]
         // })
         const socket = io(window.location.origin)
-        let loggedUser = ""
-
-        async function getUser() {
-
-            const res = await fetch("/me", {
-                credentials: "include"
-            })
-
-            const data = await res.json()
-
-            loggedUser = data.email
-
-            socket.emit("register-user", loggedUser)
-
-            initChat()
-        }
-
-        getUser()
-        let receiverEmail = localStorage.getItem("chatWith")
-
-        // 🔥 READ URL PARAMS
-        const params = new URLSearchParams(window.location.search)
-
-        const fromParam = params.get("from")
-        const isGroupParam = params.get("isGroup")
-
-        if (fromParam) {
-            receiverEmail = fromParam
-            localStorage.setItem("chatWith", fromParam)
-
-            if (isGroupParam === "true") {
-                localStorage.setItem("isGroup", "true")
-            } else {
-                localStorage.setItem("isGroup", "false")
-            }
-        }
-        const isGroup = localStorage.getItem("isGroup") === "true"
+        const loggedUser = localStorage.getItem("loggedUser")
         console.log("Logged user:", loggedUser)
         console.log("Receiver:", receiverEmail)
 
@@ -340,9 +337,19 @@
             socket.emit("user-inactive", loggedUser)
         })
         // loadContacts()
-        // initChat()
-        const urlParams = new URLSearchParams(window.location.search)
-        const isCallOpen = urlParams.get("call") === "true"
+        initChat()
+        // const urlParams = new URLSearchParams(window.location.search)
+        // const fromParam = urlParams.get("from")
+        // const nameParam = urlParams.get("name")
+
+        // if (fromParam) {
+        //     localStorage.setItem("chatWith", fromParam)
+
+        //     if (nameParam) {
+        //         localStorage.setItem("chatName", nameParam)
+        //     }
+        // }
+
 
         // Load receiver info
         // document.getElementById("chatName").innerText =
@@ -357,9 +364,6 @@
         async function initChat() {
 
             await loadContacts()     // wait until contacts are loaded
-            if (isGroup) {
-                localStorage.setItem("chatWith", receiverEmail)
-            }
 
             await loadOldMessages()  // then load messages
 
@@ -392,8 +396,10 @@
         // 🔥 LOAD OLD MESSAGES WHEN PAGE OPENS
         async function loadOldMessages() {
 
-            const res = await fetch(`/messages/${loggedUser}/${receiverEmail}?isGroup=${isGroup}`,{
-                credentials:"include"
+            const res = await fetch(`/messages/${loggedUser}/${receiverEmail}?isGroup=${isGroup}`)
+            console.log("🔥 Loading messages:", {
+                receiverEmail,
+                isGroup
             })
 
             const data = await res.json()
@@ -402,15 +408,7 @@
             if (!isGroup) {
                 socket.emit("mark-seen", {
                     from: receiverEmail,
-                    to: loggedUser,
-                    isGroup: false
-                })
-            }
-            if (isGroup) {
-                socket.emit("mark-seen", {
-                    from: loggedUser,
-                    to: receiverEmail,
-                    isGroup: true
+                    to: loggedUser
                 })
             }
 
@@ -483,8 +481,7 @@
                 body: JSON.stringify({
                     messageIds: Array.from(selectedMessages),
                     userEmail: loggedUser
-                }),
-                credentials:"include"
+                })
             })
 
             location.reload()
@@ -498,8 +495,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messageIds: Array.from(selectedMessages)
-                }),
-                credentials:"include"
+                })
             })
 
             // ✅ Replace message text visually
@@ -517,9 +513,7 @@
         })
         async function loadContacts() {
 
-            const res = await fetch(`/getcontacts/${loggedUser}`,{
-                credentials:"include"
-            })
+            const res = await fetch(`/getcontacts/${loggedUser}`)
             const contacts = await res.json()
 
             contacts.forEach(c => {
@@ -552,8 +546,7 @@
                 body: JSON.stringify({
                     user1: loggedUser,
                     user2: receiverEmail
-                }),
-                credentials:"include"
+                })
             })
 
             location.reload()
@@ -662,12 +655,29 @@
             console.log("Received message:", msgObj)
 
             // ignore messages from other chats
-            if (
-                msgObj.from !== receiverEmail &&
-                msgObj.to !== receiverEmail &&
-                !msgObj.isGroup
-            ) {
-                return
+            // if (
+            //     msgObj.from !== receiverEmail &&
+            //     msgObj.to !== receiverEmail &&
+            //     !msgObj.isGroup
+            // ) {
+            //     return
+            // }
+            // maybe you need to chane the code here
+            if (msgObj.isGroup) {
+
+                if (msgObj.groupId !== receiverEmail) {
+                    return
+                }
+
+            } else {
+
+                if (
+                    msgObj.from !== receiverEmail &&
+                    msgObj.to !== receiverEmail
+                ) {
+                    return
+                }
+
             }
 
             if (msgObj.from === loggedUser) {
@@ -675,33 +685,10 @@
             } else {
                 addMessage(msgObj, "received")
 
-                // 🔥 ONLY MARK SEEN IF CURRENT CHAT MATCHES
-                if (
-                    isActive &&                         // 🔥 important
-                    document.hasFocus() &&             // 🔥 very important
-                    !msgObj.isGroup &&
-                    msgObj.from === receiverEmail
-                ) {
-                    socket.emit("mark-seen", {
-                        from: msgObj.from,
-                        to: loggedUser,
-                        isGroup: false
-                    })
-                }
-
-                // 🔥 FOR GROUP
-                if (
-                    isActive &&
-                    document.hasFocus() &&
-                    msgObj.isGroup &&
-                    msgObj.groupId?.toString() === receiverEmail
-                ) {
-                    socket.emit("mark-seen", {
-                        from: loggedUser,
-                        to: msgObj.groupId,
-                        isGroup: true
-                    })
-                }
+                socket.emit("mark-seen", {
+                    from: msgObj.from,
+                    to: loggedUser
+                })
             }
 
             chatBody.scrollTop = chatBody.scrollHeight
@@ -810,8 +797,7 @@
                 body: JSON.stringify({
                     email: localStorage.getItem("loggedUser"),
                     subscription
-                }),
-                credentials:"include"
+                })
             })
         }
 
@@ -843,48 +829,6 @@
 
         // 🔥 CALL ONLY ONCE
         setupNotifications()
-        navigator.serviceWorker.addEventListener("message", (event) => {
-
-            const { action, data, isCall } = event.data
-
-            if (action === "open-chat") {
-
-                console.log("📩 Opening from notification:", data)
-
-                localStorage.setItem("chatWith", data.from)
-
-                if (data.isGroup) {
-                    localStorage.setItem("isGroup", "true")
-                } else {
-                    localStorage.setItem("isGroup", "false")
-                }
-
-                // 🔥 FIX FOR CALLS
-                if (isCall) {
-
-                    localStorage.setItem("callType", "receiver")
-
-                    if (data.isGroup) {
-
-                        window.location.href =
-                            data.type === "video"
-                                ? "/groupvideocall.html"
-                                : "/groupvoicecall.html"
-
-                    } else {
-
-                        window.location.href =
-                            data.type === "video"
-                                ? "/videocall.html"
-                                : "/voicechat.html"
-                    }
-
-                    return
-                }
-
-                location.reload()
-            }
-        })
 
         function getDateLabel(date) {
 
@@ -1116,6 +1060,17 @@
             })
         }
         socket.on("incoming-call", ({ from, offer, type }) => {
+            const currentChat = localStorage.getItem("chatWith")
+
+            console.log("📞 Incoming call from:", from)
+            console.log("Current chat:", currentChat)
+
+            // ❌ IF USER IS NOT IN THAT CHAT → SKIP POPUP
+            if (currentChat !== from) {
+                console.log("❌ Different chat → skip popup, use notification")
+                return
+            }
+
 
             const accept = confirm(`Incoming ${type} call from ${from}`)
 
