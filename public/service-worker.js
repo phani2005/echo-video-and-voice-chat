@@ -26,7 +26,7 @@ self.addEventListener("notificationclick", function (event) {
 
     let url = data.url || "/chat.html"
 
-    const params = `?from=${data.from || ""}&type=${data.type || ""}&isGroup=${data.isGroup || false}`
+    const params = `?from=${data.from || ""}&type=${data.type || ""}&isGroup=${data.isGroup || false}&name=${data.title || ""}&openChat=true`
 
     if (data.isGroup && data.type === "voice") {
         url = "/groupvoicecall.html"
@@ -51,16 +51,16 @@ self.addEventListener("notificationclick", function (event) {
                 }
 
                 // 🔥 FOR CHAT → reuse tab
-                for (const client of clientList) {
-                    if ("focus" in client) {
-                        client.focus()
-                        client.postMessage({
-                            action: "open-chat",
-                            data: data
-                        })
-                        return
-                    }
-                }
+                // for (const client of clientList) {
+                //     if ("focus" in client) {
+                //         client.focus()
+                //         client.postMessage({
+                //             action: "open-chat",
+                //             data: data
+                //         })
+                //         return
+                //     }
+                // }
 
                 return clients.openWindow(url + params)
 
