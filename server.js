@@ -12,10 +12,7 @@ import { CloudinaryStorage } from "multer-storage-cloudinary"
 import fs from "fs"
 import dns from "dns"
 import webpush from "web-push"
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
-import cookieParser from "cookie-parser"
-import { verify } from "crypto"
+
 webpush.setVapidDetails(
     "mailto:phani005.setty@gmail.com",
     "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM",
@@ -30,12 +27,8 @@ dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
 // const resend = new Resend(process.env.RESEND_API_KEY)
 const app = express()
-app.use(cors({
-    origin: true,
-    credentials: true
-}))
+app.use(cors())
 app.use(express.json())
-app.use(cookieParser())
 app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }))
 app.use("/uploads", express.static("uploads"))
@@ -59,7 +52,6 @@ try {
     console.log("MONGO ERROR:", err)
 }
 const onlineUsers = {}//online users object
-const JWT_SECRET = "phani_super_secret"
 const userschema = new mongoose.Schema({
     username: String,
     email: String,
@@ -185,7 +177,6 @@ app.post("/register", upload.single("photo"), async (req, res) => {
         }
 
         let imageUrl = ""
-        const hashedPassword = await bcrypt.hash(password, 10)
 
         // Upload to cloudinary
         if (req.file) {
@@ -195,7 +186,7 @@ app.post("/register", upload.single("photo"), async (req, res) => {
         await User.create({
             username,
             email,
-            password:hashedPassword,
+            password,
             profileimage: imageUrl
         })
 
@@ -232,24 +223,26 @@ app.post("/register", upload.single("photo"), async (req, res) => {
 //             </script>`)
 //     }
 // })
-app.post("/subscribe", verifyUser, async (req, res) => {
+app.post("/subscribe", async (req, res) => {
 
     const { email, subscription } = req.body
 
     try {
 
-        // 🔥 REMOVE OLD USER USING SAME DEVICE
-        await Subscription.deleteMany({
+        const exists = await Subscription.findOne({
+            email,
             "sub.endpoint": subscription.endpoint
         })
 
-        // 🔥 ADD NEW
-        await Subscription.create({
-            email,
-            sub: subscription
-        })
-
-        console.log("📱 SUBSCRIBED:", email)
+        if (!exists) {
+            await Subscription.create({
+                email,
+                sub: subscription
+            })
+            console.log("📱 NEW DEVICE ADDED:", email)
+        } else {
+            console.log("⚡ Already subscribed:", email)
+        }
 
         res.json({ success: true })
 
@@ -269,74 +262,24 @@ app.post("/login", async (req, res) => {
             return res.json({ success: false, message: "User not found" })
         }
 
-        const isMatch = await bcrypt.compare(password, user.password)
-
-        if (!isMatch) {
+        if (user.password != password) {
             return res.json({ success: false, message: "Invalid password" })
         }
 
-        // 🔥 CREATE TOKEN
-        const token = jwt.sign(
-            { email: user.email },
-            JWT_SECRET,
-            { expiresIn: "7d" }
-        )
-
-        // 🔥 SEND COOKIE
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "Lax"
-        })
-
-        res.json({ success: true })
+        res.json({ success: true, email })
 
     } catch (err) {
         console.log("LOGIN ERROR:", err)
-        res.status(500).json({ success: false })
+        res.status(500).json({ success: false, message: "Server error" })
     }
 })
-function verifyUser(req, res, next) {
-
-    const token = req.cookies.token
-
-    if (!token) {
-        return res.status(401).json({ error: "Unauthorized" })
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET)
-        req.user = decoded
-        next()
-    } catch {
-        return res.status(401).json({ error: "Invalid token" })
-    }
-}
 app.get("/", (req, res) => {
     res.redirect("/login.html")
 })
 app.get("/login", (req, res) => {
     res.redirect("/login.html")
 })
-app.post("/unsubscribe", verifyUser, async (req, res) => {
 
-    try {
-        const { endpoint } = req.body
-
-        await Subscription.deleteOne({
-            "sub.endpoint": endpoint
-        })
-
-        console.log("🗑️ Subscription removed:", endpoint)
-
-        res.json({ success: true })
-
-    } catch (err) {
-        console.log("UNSUBSCRIBE ERROR:", err)
-        res.status(500).json({ success: false })
-    }
-
-})
 app.post("/create-group", upload.single("photo"), async (req, res) => {
 
     const { groupName, members, admin } = req.body
@@ -379,7 +322,7 @@ app.post("/addcontact", async (req, res) => {
     await user.save()
     res.json({ success: true })
 })
-app.get("/getcontacts/:email", verifyUser,async (req, res) => {
+app.get("/getcontacts/:email", async (req, res) => {
 
     const user = await User.findOne({ email: req.params.email })
     const contactswithdp = []
@@ -394,7 +337,7 @@ app.get("/getcontacts/:email", verifyUser,async (req, res) => {
     console.log("contacts with dp: ", contactswithdp)
     res.json(contactswithdp)
 })
-app.get("/get-profile/:email",verifyUser, async (req, res) => {
+app.get("/get-profile/:email", async (req, res) => {
 
     const user = await User.findOne({ email: req.params.email })
 
@@ -405,7 +348,7 @@ app.get("/get-profile/:email",verifyUser, async (req, res) => {
         profileimage: user.profileimage
     })
 })
-app.post("/change-my-name", verifyUser, async (req, res) => {
+app.post("/change-my-name", async (req, res) => {
 
     try {
 
@@ -432,7 +375,7 @@ app.post("/change-my-name", verifyUser, async (req, res) => {
         res.status(500).json({ success: false })
     }
 })
-app.get("/conversations/:email", verifyUser ,async (req, res) => {
+app.get("/conversations/:email", async (req, res) => {
 
     const userEmail = req.params.email
     const user = await User.findOne({ email: userEmail })
@@ -513,12 +456,6 @@ app.get("/conversations/:email", verifyUser ,async (req, res) => {
             groupId: group._id,
             isGroup: true
         }).sort({ timestamp: -1 })
-        const unreadGroup = await Message.countDocuments({
-            groupId: group._id,
-            isGroup: true,
-            seen: false,
-            from: { $ne: userEmail }
-        })
 
         result.push({
             email: group._id,
@@ -526,7 +463,6 @@ app.get("/conversations/:email", verifyUser ,async (req, res) => {
             profileimage: group.profileimage,
             lastMessage: lastGroupMessage ? lastGroupMessage.message : "",
             lastMessageTime: lastGroupMessage ? lastGroupMessage.timestamp : null,
-            unread: unreadGroup,
             isGroup: true
         })
     }
@@ -541,7 +477,7 @@ app.get("/conversations/:email", verifyUser ,async (req, res) => {
 
     res.json(result)
 })
-app.post("/changename",verifyUser, async (req, res) => {
+app.post("/changename", async (req, res) => {
 
     const { ownerEmail, contactEmail, newName } = req.body
 
@@ -552,7 +488,7 @@ app.post("/changename",verifyUser, async (req, res) => {
     console.log("Update results: ", result)
     res.json({ success: true })
 })
-app.post("/changedp",verifyUser, upload.single("photo"), async (req, res) => {
+app.post("/changedp", upload.single("photo"), async (req, res) => {
 
     const { email } = req.body
 
@@ -563,7 +499,7 @@ app.post("/changedp",verifyUser, upload.single("photo"), async (req, res) => {
 
     res.redirect("/main.html")
 })
-app.post("/deletecontact",verifyUser, async (req, res) => {
+app.post("/deletecontact", async (req, res) => {
 
     const { ownerEmail, contactEmail } = req.body
 
@@ -586,10 +522,7 @@ app.post("/deletecontact",verifyUser, async (req, res) => {
 
     res.json({ success: true })
 })
-app.get("/me", verifyUser, (req, res) => {
-    res.json({ email: req.user.email })
-})
-app.post("/upload-message", verifyUser,upload.single("file"), async (req, res) => {
+app.post("/upload-message", upload.single("file"), async (req, res) => {
     try {
 
         if (!req.file) {
@@ -673,19 +606,7 @@ app.post("/upload-message", verifyUser,upload.single("file"), async (req, res) =
                                 type: "group",
                                 isGroup: true
                             })
-                        ).catch(async err => {
-
-                            console.log("❌ Push failed:", err.statusCode)
-
-                            // 🔥 REMOVE EXPIRED SUB
-                            if (err.statusCode === 410 || err.statusCode === 404) {
-                                await Subscription.deleteOne({
-                                    "sub.endpoint": s.sub.endpoint
-                                })
-                                console.log("🗑️ Removed expired subscription")
-                            }
-
-                        })
+                        )
                     })
                 }
             }
@@ -739,19 +660,7 @@ app.post("/upload-message", verifyUser,upload.single("file"), async (req, res) =
                             from: from,
                             type: "file"
                         })
-                    ).catch(async err => {
-
-                        console.log("❌ Push failed:", err.statusCode)
-
-                        // 🔥 REMOVE EXPIRED SUB
-                        if (err.statusCode === 410 || err.statusCode === 404) {
-                            await Subscription.deleteOne({
-                                "sub.endpoint": s.sub.endpoint
-                            })
-                            console.log("🗑️ Removed expired subscription")
-                        }
-
-                    })
+                    )
                 })
             }
         }
@@ -780,7 +689,7 @@ app.post("/toggle-block", async (req, res) => {
 
     res.json({ blocked: !isBlocked })
 })
-app.post("/clear-chat",verifyUser, async (req, res) => {
+app.post("/clear-chat", async (req, res) => {
     const { user1, user2 } = req.body
 
     await Message.updateMany(
@@ -795,7 +704,7 @@ app.post("/clear-chat",verifyUser, async (req, res) => {
 
     res.json({ success: true })
 })
-app.post("/delete-messages",verifyUser, async (req, res) => {
+app.post("/delete-messages", async (req, res) => {
     const { messageIds, userEmail } = req.body
 
     await Message.updateMany(
@@ -805,7 +714,7 @@ app.post("/delete-messages",verifyUser, async (req, res) => {
 
     res.json({ success: true })
 })
-app.post("/delete-for-everyone",verifyUser, async (req, res) => {
+app.post("/delete-for-everyone", async (req, res) => {
 
     const { messageIds } = req.body
 
@@ -920,19 +829,7 @@ io.on("connection", (socket) => {
                         type: "message",
                         isGroup: false
                     })
-                ).catch(async err => {
-
-                    console.log("❌ Push failed:", err.statusCode)
-
-                    // 🔥 REMOVE EXPIRED SUB
-                    if (err.statusCode === 410 || err.statusCode === 404) {
-                        await Subscription.deleteOne({
-                            "sub.endpoint": s.sub.endpoint
-                        })
-                        console.log("🗑️ Removed expired subscription")
-                    }
-
-                })
+                )
             })
 
         }
@@ -981,58 +878,28 @@ io.on("connection", (socket) => {
                             url: "/chat.html",
                             from: groupId,
                             type: "group",
+                            name:groupname,
                             isGroup: true
                         })
-                    ).catch(async err => {
-
-                        console.log("❌ Push failed:", err.statusCode)
-
-                        // 🔥 REMOVE EXPIRED SUB
-                        if (err.statusCode === 410 || err.statusCode === 404) {
-                            await Subscription.deleteOne({
-                                "sub.endpoint": s.sub.endpoint
-                            })
-                            console.log("🗑️ Removed expired subscription")
-                        }
-
-                    })
+                    )
                 })
             }
         }
     })
-    socket.on("mark-seen", async ({ from, to, isGroup }) => {
-
-        // 🔥 GROUP SEEN FIX
-        if (isGroup) {
-
-            await Message.updateMany({
-                groupId: to,
-                isGroup: true,
-                from: { $ne: from }, // don't mark own messages
-                seen: false
-            }, {
-                seen: true
+    socket.on("mark-seen", async ({ from, to }) => {
+        await Message.updateMany({
+            from: from,
+            to: to,
+            seen: false
+        }, {
+            seen: true
+        })
+        const senderSocketId = onlineUsers[from]
+        if (senderSocketId) {
+            io.to(senderSocketId).emit("messages-seen", {
+                from,
+                to
             })
-
-        } else {
-
-            // 🔥 PRIVATE (existing logic)
-            await Message.updateMany({
-                from: from,
-                to: to,
-                seen: false
-            }, {
-                seen: true
-            })
-
-            const senderSocketId = onlineUsers[from]
-
-            if (senderSocketId) {
-                io.to(senderSocketId).emit("messages-seen", {
-                    from,
-                    to
-                })
-            }
         }
     })
     socket.on("disconnect", () => {
@@ -1108,19 +975,7 @@ io.on("connection", (socket) => {
                         type: type,
                         isGroup: false
                     })
-                ).catch(async err => {
-
-                    console.log("❌ Push failed:", err.statusCode)
-
-                    // 🔥 REMOVE EXPIRED SUB
-                    if (err.statusCode === 410 || err.statusCode === 404) {
-                        await Subscription.deleteOne({
-                            "sub.endpoint": s.sub.endpoint
-                        })
-                        console.log("🗑️ Removed expired subscription")
-                    }
-
-                })
+                )
             })
         }
     })
@@ -1177,19 +1032,7 @@ io.on("connection", (socket) => {
                     from: from,
                     isGroup: false
                 })
-            ).catch(async err => {
-
-                console.log("❌ Push failed:", err.statusCode)
-
-                // 🔥 REMOVE EXPIRED SUB
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                    await Subscription.deleteOne({
-                        "sub.endpoint": s.sub.endpoint
-                    })
-                    console.log("🗑️ Removed expired subscription")
-                }
-
-            })
+            )
         })
     })
 
@@ -1459,9 +1302,10 @@ io.on("connection", (socket) => {
             }
         }
 
+
     })
 })
-app.get("/group-members/:groupId/:viewerEmail",verifyUser, async (req, res) => {
+app.get("/group-members/:groupId/:viewerEmail", async (req, res) => {
 
     const { groupId, viewerEmail } = req.params
 
@@ -1502,7 +1346,7 @@ app.get("/group-members/:groupId/:viewerEmail",verifyUser, async (req, res) => {
     })
 
 })
-app.get("/messages/:user1/:chatId",verifyUser, async (req, res) => {
+app.get("/messages/:user1/:chatId", async (req, res) => {
 
     const { user1, chatId } = req.params
     const isGroup = req.query.isGroup === "true"
@@ -1554,7 +1398,7 @@ app.get("/messages/:user1/:chatId",verifyUser, async (req, res) => {
         isSavedContact
     })
 })
-app.get("/calls/:email",verifyUser, async (req, res) => {
+app.get("/calls/:email", async (req, res) => {
 
     const email = req.params.email
 
