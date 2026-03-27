@@ -46,7 +46,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         const data = await res.json()
 
         if (data.success) {
-            // localStorage.setItem("loggedUser", data.email)
+            localStorage.setItem("loggedUser", data.email)
             window.location.href = "/main.html"
         } else {
             alert(data.message)
