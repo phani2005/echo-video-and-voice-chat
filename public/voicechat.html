@@ -113,49 +113,6 @@
     <button class="end-btn" onclick="endCall()">End Call</button>
 
     <audio id="remoteAudio" autoplay playsinline></audio>
-
-
-    <!-- <div id="incomingCallBox" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-background:#222;
-padding:20px;
-text-align:center;
-z-index:1000;
-">
-
-        <div style="font-size:18px;margin-bottom:10px;" id="callerName"></div>
-
-        <button id="acceptCall" style="
-background:#25D366;
-border:none;
-padding:10px 20px;
-color:white;
-font-size:16px;
-border-radius:20px;
-margin-right:15px;
-cursor:pointer;
-">
-            Answer
-        </button>
-
-        <button id="rejectCall" style="
-background:red;
-border:none;
-padding:10px 20px;
-color:white;
-font-size:16px;
-border-radius:20px;
-cursor:pointer;
-">
-            Reject
-        </button>
-
-    </div> -->
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
@@ -165,42 +122,34 @@ cursor:pointer;
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
-        let loggedUser = ""
-
-        async function getUser() {
-
-            const res = await fetch("/me", {
-                credentials: "include"
-            })
-
-            const data = await res.json()
-
-            loggedUser = data.email
-
-            socket.emit("register-user", loggedUser)
-        }
-
-        getUser()
+        const loggedUser = localStorage.getItem("loggedUser")
         let receiver = localStorage.getItem("chatWith")
 
         const params = new URLSearchParams(window.location.search)
+
         const fromParam = params.get("from")
+        const nameParam = params.get("name")
 
         if (fromParam) {
             receiver = fromParam
+
+            // ✅ IMPORTANT: override old chat
             localStorage.setItem("chatWith", fromParam)
-            //new values
-            localStorage.removeItem("chatName")
-            localStorage.removeItem("chatDp")
+
+            // ✅ SET CORRECT NAME (VERY IMPORTANT)
+            if (nameParam) {
+                localStorage.setItem("chatName", nameParam)
+            }
         }
         const callType = localStorage.getItem("callType")
 
-        // socket.emit("register-user", loggedUser)
+        socket.emit("register-user", loggedUser)
 
         let localStream
         let peers = {}
         let seconds = 0
         let timerInterval
+        let incomingCaller = null
 
         /* ---------------- STREAM ---------------- */
 
@@ -225,19 +174,50 @@ cursor:pointer;
         // } else {
         //     document.getElementById("contactDp").src = "/profilephotodefault.png"
         // }
-        async function loadCallerDetails() {
+        async function loadCallerInfo() {
 
-            const res = await fetch(`/get-profile/${receiver}`)
-            const data = await res.json()
+            try {
+                const res = await fetch(`/get-profile/${receiver}`)
+                const data = await res.json()
 
-            document.getElementById("contactName").innerText =
-                data.username || receiver
+                console.log("Caller data:", data)
 
-            document.getElementById("contactDp").src =
-                data.profileimage || "/profilephotodefault.png"
+                // ✅ NAME
+                // document.getElementById("contactName").innerText =
+                //     data.username || receiver
+                // ✅ FIRST CHECK LOCAL CONTACT NAME
+                // ✅ STEP 1: get saved contacts
+                const resContacts = await fetch(`/getcontacts/${loggedUser}`)
+                const contacts = await resContacts.json()
+
+                // ✅ STEP 2: find correct contact
+                const matchedContact = contacts.find(c => c.email === receiver)
+
+                // ✅ STEP 3: set name correctly
+                if (matchedContact) {
+                    document.getElementById("contactName").innerText = matchedContact.name
+                } else {
+                    document.getElementById("contactName").innerText =
+                        data.username || receiver
+                }
+
+                // ✅ DP
+                if (data.profileimage) {
+                    document.getElementById("contactDp").src = data.profileimage
+                } else {
+                    document.getElementById("contactDp").src = "/profilephotodefault.png"
+                }
+
+            } catch (err) {
+                console.log("Error loading caller info:", err)
+
+                document.getElementById("contactName").innerText = receiver
+                document.getElementById("contactDp").src = "/profilephotodefault.png"
+            }
         }
 
-        loadCallerDetails()
+        // 🔥 CALL IT HERE
+        loadCallerInfo()
 
         /* ---------------- TIMER ---------------- */
 
@@ -355,7 +335,24 @@ cursor:pointer;
 
             if (type !== "voice") return
 
+
             console.log("📞 Incoming call from:", from)
+            const currentChat = localStorage.getItem("chatWith")
+            console.log("current chat is: ", currentChat)
+
+            // ❌ IF NOT SAME CHAT → DO NOTHING (USE NOTIFICATION)
+            if (currentChat !== from) {
+                alert("❌ Not active chat → skip popup")
+                return
+            }
+            // ✅ VERY IMPORTANT: store real caller
+            incomingCaller = from
+
+            // ✅ UPDATE RECEIVER (FIX CORE BUG)
+            receiver = from
+
+            // ✅ UPDATE UI IMMEDIATELY
+            loadCallerInfo()
 
             // 🔥 IF OFFER EXISTS → DIRECT CONNECT (notification case)
             if (offer) {
@@ -374,6 +371,10 @@ cursor:pointer;
             document.getElementById("acceptCall").onclick = async () => {
 
                 callBox.style.display = "none"
+
+                receiver = incomingCaller
+
+                console.log("✅ Accepting call from:", receiver)
 
                 await initLocalStream()
 
