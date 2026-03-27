@@ -606,7 +606,9 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                                 type: "group",
                                 isGroup: true
                             })
-                        )
+                        ).catch(err => {
+                            console.log("❌ Push error:", err.message)
+                        })
                     })
                 }
             }
@@ -660,7 +662,9 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                             from: from,
                             type: "file"
                         })
-                    )
+                    ).catch(err => {
+                        console.log("❌ Push error:", err.message)
+                    })
                 })
             }
         }
@@ -829,7 +833,9 @@ io.on("connection", (socket) => {
                         type: "message",
                         isGroup: false
                     })
-                )
+                ).catch(err => {
+    console.log("❌ Push error:", err.message)
+})
             })
 
         }
@@ -878,10 +884,12 @@ io.on("connection", (socket) => {
                             url: "/chat.html",
                             from: groupId,
                             type: "group",
-                            name:groupname,
+                            name: groupname,
                             isGroup: true
                         })
-                    )
+                    ).catch(err => {
+    console.log("❌ Push error:", err.message)
+})
                 })
             }
         }
@@ -975,7 +983,9 @@ io.on("connection", (socket) => {
                         type: type,
                         isGroup: false
                     })
-                )
+                ).catch(err => {
+    console.log("❌ Push error:", err.message)
+})
             })
         }
     })
@@ -1032,7 +1042,9 @@ io.on("connection", (socket) => {
                     from: from,
                     isGroup: false
                 })
-            )
+            ).catch(err => {
+    console.log("❌ Push error:", err.message)
+})
         })
     })
 
