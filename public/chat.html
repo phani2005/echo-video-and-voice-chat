@@ -324,6 +324,12 @@
 
         if (loggedUser) {
             socket.emit("register-user", loggedUser)
+            socket.emit("join-chat", {
+                user: loggedUser,
+                chatId: receiverEmail,
+                isGroup: isGroup
+            })
+
         }
         let isActive = true
 
@@ -335,6 +341,9 @@
         window.addEventListener("blur", () => {
             isActive = false
             socket.emit("user-inactive", loggedUser)
+        })
+        window.addEventListener("beforeunload", () => {
+            socket.emit("leave-chat", loggedUser)
         })
         // loadContacts()
         initChat()
