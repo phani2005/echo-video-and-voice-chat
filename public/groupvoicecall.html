@@ -121,23 +121,24 @@
     <script>
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
+        const loggedUser = localStorage.getItem("loggedUser")
 
-        let loggedUser = ""
+        // let loggedUser = ""
 
-        async function getUser() {
+        // async function getUser() {
 
-            const res = await fetch("/me", {
-                credentials: "include"
-            })
+        //     const res = await fetch("/me", {
+        //         credentials: "include"
+        //     })
 
-            const data = await res.json()
+        //     const data = await res.json()
 
-            loggedUser = data.email
+        //     loggedUser = data.email
 
-            socket.emit("register-user", loggedUser)
-        }
+        //     socket.emit("register-user", loggedUser)
+        // }
 
-        getUser()
+        // getUser()
         const params = new URLSearchParams(window.location.search)
 
         let groupId = params.get("from") || localStorage.getItem("chatWith")
