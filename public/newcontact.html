@@ -19,28 +19,53 @@
         </form>
 
     </div>
-
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        let loggedUser = ""
+
+        // ✅ GET LOGGED USER (FIX FOR MAIN PAGE ISSUE)
+        async function getUser() {
+            const res = await fetch("/me", {
+                credentials: "include"
+            })
+            const data = await res.json()
+            loggedUser = data.email
+        }
+
+        getUser()
+
+        // ✅ HANDLE AUTO EMAIL (ONLY FROM CHAT PAGE)
         const pendingEmail = localStorage.getItem("pendingContactEmail")
 
-        if (pendingEmail) {
+        if (pendingEmail && pendingEmail !== "null" && pendingEmail !== "undefined") {
             document.getElementById("email").value = pendingEmail
             document.getElementById("email").readOnly = true
+
+            // 🔥 clear after using
             localStorage.removeItem("pendingContactEmail")
+        } else {
+            // ✅ FROM MAIN PAGE → keep empty
+            document.getElementById("email").value = ""
+            document.getElementById("email").readOnly = false
         }
+
+        // ✅ SUBMIT FORM
         document.getElementById("addForm").addEventListener("submit", async (e) => {
             e.preventDefault()
 
             const res = await fetch("/addcontact", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
-                    ownerEmail: localStorage.getItem("loggedUser"),
+                    ownerEmail: loggedUser,
                     contactEmail: document.getElementById("email").value,
                     contactName: document.getElementById("name").value
                 })
             })
+
             const data = await res.json()
+
             if (!data.success) {
                 alert(data.message)
                 return
