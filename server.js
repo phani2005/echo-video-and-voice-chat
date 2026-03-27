@@ -22,6 +22,7 @@ webpush.setVapidDetails(
 // let subscriptions = []
 const activeUsers = {}
 const activeCalls = {} // 🔥 store active calls
+const activeChats = {}
 // import {Resend} from "resend"
 dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
@@ -834,8 +835,8 @@ io.on("connection", (socket) => {
                         isGroup: false
                     })
                 ).catch(err => {
-    console.log("❌ Push error:", err.message)
-})
+                    console.log("❌ Push error:", err.message)
+                })
             })
 
         }
@@ -865,7 +866,12 @@ io.on("connection", (socket) => {
 
             if (member === from) continue
 
-            if (!activeUsers[member]) {
+            const isInSameGroup =
+                activeChats[member] &&
+                activeChats[member].chatId == groupId &&
+                activeChats[member].isGroup === true
+
+            if (!activeUsers[member] || !isInSameGroup) {
 
                 const subs = await Subscription.find({ email: member })
                 const senderUser = await User.findOne({ email: from })
@@ -888,8 +894,8 @@ io.on("connection", (socket) => {
                             isGroup: true
                         })
                     ).catch(err => {
-    console.log("❌ Push error:", err.message)
-})
+                        console.log("❌ Push error:", err.message)
+                    })
                 })
             }
         }
@@ -909,6 +915,9 @@ io.on("connection", (socket) => {
                 to
             })
         }
+    })
+    socket.on("leave-chat", (user) => {
+        delete activeChats[user]
     })
     socket.on("disconnect", () => {
 
@@ -984,8 +993,8 @@ io.on("connection", (socket) => {
                         isGroup: false
                     })
                 ).catch(err => {
-    console.log("❌ Push error:", err.message)
-})
+                    console.log("❌ Push error:", err.message)
+                })
             })
         }
     })
@@ -1043,8 +1052,8 @@ io.on("connection", (socket) => {
                     isGroup: false
                 })
             ).catch(err => {
-    console.log("❌ Push error:", err.message)
-})
+                console.log("❌ Push error:", err.message)
+            })
         })
     })
 
@@ -1270,6 +1279,19 @@ io.on("connection", (socket) => {
             })
         }
 
+    })
+    socket.on("join-chat", ({ user, chatId, isGroup }) => {
+
+        if (!activeChats[user]) {
+            activeChats[user] = {}
+        }
+
+        activeChats[user] = {
+            chatId,
+            isGroup
+        }
+
+        console.log("📍 Active chat:", user, chatId)
     })
     socket.on("notify-existing-users", ({ to, from }) => {
 
