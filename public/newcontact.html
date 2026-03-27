@@ -21,18 +21,7 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        let loggedUser = ""
-
-        // ✅ GET LOGGED USER (FIX FOR MAIN PAGE ISSUE)
-        async function getUser() {
-            const res = await fetch("/me", {
-                credentials: "include"
-            })
-            const data = await res.json()
-            loggedUser = data.email
-        }
-
-        getUser()
+        const loggedUser=localStorage.getItem("loggedUser")
 
         // ✅ HANDLE AUTO EMAIL (ONLY FROM CHAT PAGE)
         const pendingEmail = localStorage.getItem("pendingContactEmail")
@@ -56,7 +45,7 @@
             const res = await fetch("/addcontact", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
+                // credentials: "include",
                 body: JSON.stringify({
                     ownerEmail: loggedUser,
                     contactEmail: document.getElementById("email").value,
