@@ -205,6 +205,9 @@
         if (fromParam && openChat) {
 
             console.log("🔥 Opening correct chat from notification:", fromParam)
+            // 🔥 CLEAR UNREAD COUNT WHEN OPENED FROM NOTIFICATION
+            const key = "unread_" + fromParam
+            localStorage.removeItem(key)
 
             // ✅ FORCE UPDATE
             localStorage.setItem("chatWith", fromParam)
