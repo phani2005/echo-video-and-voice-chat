@@ -64,23 +64,7 @@
     <script>
         const socket = io(window.location.origin)
 
-        let loggedEmail = ""
-
-        async function getUser() {
-
-            const res = await fetch("/me", {
-                credentials: "include"
-            })
-
-            const data = await res.json()
-
-            loggedEmail = data.email
-
-            socket.emit("register-user", loggedEmail)
-            loadProfile()
-        }
-
-        getUser()
+        const loggedEmail=localStorage.getItem("loggedUser")
 
         async function loadProfile() {
 
