@@ -174,23 +174,11 @@
         function startRinging() {
             ringtone.currentTime = 0
             ringtone.play().catch(() => { })
-            if (navigator.vibrate) {
-                vibrationInterval = setInterval(() => {
-                    navigator.vibrate([500, 300, 500])
-                }, 1500) // repeat vibration
-            }
         }
 
         function stopRinging() {
             ringtone.pause()
             ringtone.currentTime = 0
-            if (vibrationInterval) {
-                clearInterval(vibrationInterval)
-            }
-
-            if (navigator.vibrate) {
-                navigator.vibrate(0) // stop vibration
-            }
         }
         // document.getElementById("contactName").innerText =
         //     localStorage.getItem("chatName") || receiver
