@@ -128,6 +128,9 @@
         </button>
         <button onclick="endCall()" class="end-btn"><i class="fa-solid fa-phone-slash"></i></button>
     </div>
+    <audio id="ringtone" loop>
+        <source src="/ringtone.mp3" type="audio/mpeg">
+    </audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
@@ -155,7 +158,7 @@
         // }
 
         // getUser()
-        const loggedUser=localStorage.getItem("loggedUser")
+        const loggedUser = localStorage.getItem("loggedUser")
         const params = new URLSearchParams(window.location.search)
 
         let groupId = params.get("from") || localStorage.getItem("chatWith")
@@ -171,11 +174,20 @@
         let usingFrontCamera = true
         let videoDevices = []
         let currentCameraIndex = 0
+        const ringtone = document.getElementById("ringtone")
+        let callTimeout
+        let isConnected = false
 
         socket.emit("register-user", loggedUser)
 
         /* START CALL */
         async function startCall() {
+            startRinging() // 🔥 START RING
+
+            callTimeout = setTimeout(() => {
+                alert("No one joined the call")
+                endCall()
+            }, 60000)
 
             await getCameras()
 
@@ -203,6 +215,15 @@
                 groupId,
                 user: loggedUser
             })
+        }
+        function startRinging() {
+            ringtone.currentTime = 0
+            ringtone.play().catch(() => { })
+        }
+
+        function stopRinging() {
+            ringtone.pause()
+            ringtone.currentTime = 0
         }
 
         /* ADD VIDEO */
@@ -269,6 +290,11 @@
             })
 
             peer.on("stream", stream => {
+                if (!isConnected) {
+                    isConnected = true
+                    stopRinging()
+                    clearTimeout(callTimeout)
+                }
 
                 const user = groupMembers.find(m => m.email === userEmail)
 
@@ -416,7 +442,7 @@
             videoDevices = devices.filter(device => device.kind === "videoinput")
 
             console.log("📷 Cameras:", videoDevices)
-            alert("Cameras count: " + videoDevices.length)  // 🔥 TEMP DEBUG
+
 
         }
         async function switchCamera() {
@@ -481,6 +507,10 @@
         }
         /* END CALL */
         function endCall() {
+
+            stopRinging()
+            clearTimeout(callTimeout)
+
 
             socket.emit("end-call", {
                 to: groupId,
