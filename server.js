@@ -1166,15 +1166,17 @@ io.on("connection", (socket) => {
     })
     socket.on("call-rejected", ({ to, from }) => {
 
-        const receiverSockets = onlineUsers[to]
+    console.log("❌ Call rejected:", from, "→", to)
 
-        if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("call-rejected", { from })
-            })
-        }
+    const callerSockets = onlineUsers[to]
 
-    })
+    if (callerSockets) {
+        callerSockets.forEach(id => {
+            io.to(id).emit("call-rejected", { from })
+        })
+    }
+
+})
     //active sockets
     socket.on("user-active", (email) => {
         activeUsers[email] = true
