@@ -6,11 +6,22 @@ self.addEventListener("push", function (event) {
 
     const data = event.data.json()
 
+    // 🔥 UNIQUE TAG PER CHAT (VERY IMPORTANT)
+    const tag = data.isGroup ? data.from : data.from
+
+    // 🔥 MULTIPLE MESSAGES SUPPORT
+    let messages = data.messages || [data.body]
+
     const options = {
-        body: data.body,
+        body: messages.join("\n"),   // 👈 show multiple messages
         icon: "/icon.png",
         badge: "/icon.png",
-        data: data
+        tag: tag,                   // 🔥 SAME TAG = SINGLE NOTIFICATION
+        renotify: true,             // 🔥 vibrate again
+        data: {
+            ...data,
+            messages: messages
+        }
     }
 
     event.waitUntil(
