@@ -427,6 +427,10 @@
             document.getElementById("rejectCall").onclick = () => {
                 stopRinging()
                 clearTimeout(callTimeout)
+                socket.emit("call-rejected", {
+                    to: incomingCaller,
+                    from: loggedUser
+                })
                 callBox.style.display = "none"
             }
         })
@@ -446,6 +450,15 @@
 
         socket.on("call-ended", () => {
             alert("Call ended")
+            window.location.href = "/chat.html"
+        })
+        socket.on("call-rejected", ({ from }) => {
+
+            alert("Call rejected")
+
+            stopRinging()
+            clearTimeout(callTimeout)
+
             window.location.href = "/chat.html"
         })
         document.body.addEventListener("click", () => {
