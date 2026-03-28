@@ -442,10 +442,24 @@
         })
         socket.on("call-rejected", ({ from }) => {
 
-            alert("Call rejected")
+            console.log("❌ Call rejected by:", from)
+
+            // alert("Call rejected")
 
             stopRinging()
             clearTimeout(callTimeout)
+            Object.values(peers).forEach(p => p.destroy())
+            peers = {}
+
+            // 🔥 STOP LOCAL STREAM
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop())
+                localStream = null
+            }
+
+            // 🔥 STOP TIMER
+            clearInterval(timerInterval)
+            alert("Call rejected")
 
             window.location.href = "/chat.html"
         })
