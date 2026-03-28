@@ -111,6 +111,9 @@
     </div>
 
     <button class="end-btn" onclick="endCall()">End Call</button>
+    <audio id="ringtone" loop>
+        <source src="/ringtone.mp3" type="audio/mpeg">
+    </audio>
 
     <audio id="remoteAudio" autoplay playsinline></audio>
     <script src="/socket.io/socket.io.js"></script>
@@ -142,6 +145,8 @@
             }
         }
         const callType = localStorage.getItem("callType")
+        let callTimeout
+        const ringtone = document.getElementById("ringtone")
 
         socket.emit("register-user", loggedUser)
 
@@ -163,6 +168,16 @@
                     }
                 })
             }
+        }
+
+        function startRinging() {
+            ringtone.currentTime = 0
+            ringtone.play().catch(() => { })
+        }
+
+        function stopRinging() {
+            ringtone.pause()
+            ringtone.currentTime = 0
         }
         // document.getElementById("contactName").innerText =
         //     localStorage.getItem("chatName") || receiver
@@ -276,6 +291,8 @@
             })
 
             peer.on("stream", stream => {
+                stopRinging()          // 🔥 stop ringtone
+                clearTimeout(callTimeout) // 🔥 stop timeout
                 console.log("🔊 STREAM RECEIVED from:", user)
 
                 const audio = document.getElementById("remoteAudio")
@@ -297,6 +314,14 @@
         /* ---------------- CALL START ---------------- */
 
         async function startCall() {
+
+            startRinging() // 🔥 start ringtone
+
+            // ⏳ auto cut after 60 sec
+            callTimeout = setTimeout(() => {
+                alert("Call not answered")
+                endCall()
+            }, 60000)
 
             await initLocalStream()
 
@@ -332,6 +357,7 @@
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
+            startRinging()
 
             if (type !== "voice") return
 
@@ -369,6 +395,8 @@
             callBox.style.display = "block"
 
             document.getElementById("acceptCall").onclick = async () => {
+                stopRinging()
+                clearTimeout(callTimeout)
 
                 callBox.style.display = "none"
 
@@ -384,6 +412,8 @@
             }
 
             document.getElementById("rejectCall").onclick = () => {
+                stopRinging()
+                clearTimeout(callTimeout)
                 callBox.style.display = "none"
             }
         })
@@ -405,8 +435,14 @@
             alert("Call ended")
             window.location.href = "/chat.html"
         })
+        document.body.addEventListener("click", () => {
+            ringtone.play().catch(() => { })
+        }, { once: true })
 
         function endCall() {
+
+            stopRinging()
+            clearTimeout(callTimeout)
 
             socket.emit("end-call", {
                 to: receiver,
