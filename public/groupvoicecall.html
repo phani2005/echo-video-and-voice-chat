@@ -114,6 +114,9 @@
     </div>
 
     <button class="end-btn" onclick="endCall()">End Call</button>
+    <audio id="ringtone" loop>
+        <source src="/ringtone.mp3" type="audio/mpeg">
+    </audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
@@ -154,6 +157,9 @@
         let seconds = 0
         let timerInterval
         let isMuted = false
+        const ringtone = document.getElementById("ringtone")
+        let callTimeout
+        let isConnected = false
         const VAPID_PUBLIC_KEY = "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM"
 
         socket.emit("register-user", loggedUser)
@@ -169,6 +175,15 @@
                     String(mins).padStart(2, "0") + ":" +
                     String(secs).padStart(2, "0")
             }, 1000)
+        }
+        function startRinging() {
+            ringtone.currentTime = 0
+            ringtone.play().catch(() => { })
+        }
+
+        function stopRinging() {
+            ringtone.pause()
+            ringtone.currentTime = 0
         }
         async function subscribeUser() {
 
@@ -198,6 +213,12 @@
         }
 
         async function startGroupCall() {
+            startRinging()
+
+            callTimeout = setTimeout(() => {
+                alert("No one joined the call")
+                endCall()
+            }, 60000)
 
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
@@ -284,6 +305,11 @@
             })
 
             peer.on("stream", stream => {
+                if (!isConnected) {
+                    isConnected = true
+                    stopRinging()
+                    clearTimeout(callTimeout)
+                }
 
                 const user = groupMembers.find(m => m.email === userEmail)
                 if (user) addUserToUI(user)
