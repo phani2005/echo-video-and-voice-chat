@@ -108,12 +108,21 @@
         <!-- <button class="btn camera" onclick="switchCamera()">
             <i class="fa-solid fa-rotate" id="rotate"></i>
         </button> -->
+        <button class="btn camera" id="screenBtn" onclick="shareScreen()">
+            <i class="fa-solid fa-display"></i>
+        </button>
+        <button class="btn camera" id="switchCamBtn" onclick="switchCamera()">
+            <i class="fa-solid fa-rotate"></i>
+        </button>
 
         <button class="btn end" onclick="endCall()">
             <i class="fa-solid fa-phone-slash"></i>
         </button>
 
     </div>
+    <audio id="ringtone" loop>
+        <source src="/ringtone.mp3" type="audio/mpeg">
+    </audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
@@ -134,12 +143,18 @@
         let timerInterval
         let isMuted = false
         let cameraOff = false
+        const ringtone = document.getElementById("ringtone")
+        let callTimeout
+        let screenSharing = false
+        let videoDevices = []
+        let currentCameraIndex = 0
 
         /* ---------------- STREAM ---------------- */
 
         async function initLocalStream() {
 
             if (!localStream) {
+                getCameras()
 
                 localStream = await navigator.mediaDevices.getUserMedia({
                     video: true,
@@ -169,6 +184,15 @@
                 user1: loggedUser,
                 user2: receiver
             })
+        }
+        function startRinging() {
+            ringtone.currentTime = 0
+            ringtone.play().catch(() => { })
+        }
+
+        function stopRinging() {
+            ringtone.pause()
+            ringtone.currentTime = 0
         }
 
         /* ---------------- PEER ---------------- */
@@ -205,6 +229,9 @@
             })
 
             peer.on("stream", stream => {
+                stopRinging() // 🔥 NEW
+                clearTimeout(callTimeout) // 🔥 NEW
+
 
                 console.log("🎥 STREAM RECEIVED from:", user)
 
@@ -225,6 +252,12 @@
         /* ---------------- START CALL ---------------- */
 
         async function startCall() {
+            startRinging() // 🔥 NEW
+
+            callTimeout = setTimeout(() => {
+                alert("Call not answered")
+                endCall()
+            }, 60000)
 
             await initLocalStream()
 
@@ -238,6 +271,15 @@
                 type: "video"
             })
         }
+        async function getCameras() {
+
+            const devices = await navigator.mediaDevices.enumerateDevices()
+
+            videoDevices = devices.filter(device => device.kind === "videoinput")
+
+            console.log("📷 Cameras:", videoDevices)
+        }
+
 
         /* ---------------- USER JOINED ---------------- */
 
@@ -275,12 +317,21 @@
             // 🔥 online popup
             const accept = confirm("Incoming video call from " + from)
 
+            // if (!accept) {
+            //     socket.emit("missed-call", {
+            //         to: from,
+            //         from: loggedUser,
+            //         type: "video"
+            //     })
+            //     return
+            // }
             if (!accept) {
-                socket.emit("missed-call", {
+
+                socket.emit("call-rejected", {
                     to: from,
-                    from: loggedUser,
-                    type: "video"
+                    from: loggedUser
                 })
+
                 return
             }
 
@@ -300,6 +351,25 @@
             if (peers[from]) {
                 peers[from].signal(answer)
             }
+        })
+        socket.on("call-rejected", ({ from }) => {
+
+            stopRinging()
+            clearTimeout(callTimeout)
+
+            Object.values(peers).forEach(p => p.destroy())
+            peers = {}
+
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop())
+                localStream = null
+            }
+
+            clearInterval(timerInterval)
+
+            alert("Call rejected")
+
+            window.location.href = "/chat.html"
         })
 
         /* ---------------- END ---------------- */
@@ -340,6 +410,129 @@
             localStream.getAudioTracks().forEach(track => {
                 track.enabled = !isMuted
             })
+
+            const btn = document.getElementById("muteBtn")
+
+            if (isMuted) {
+                btn.style.background = "red"
+                btn.innerHTML = `<i class="fa-solid fa-microphone-slash"></i>`
+            } else {
+                btn.style.background = "#333"
+                btn.innerHTML = `<i class="fa-solid fa-microphone"></i>`
+            }
+        }
+        async function shareScreen() {
+
+            try {
+
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true
+                })
+
+                const screenTrack = screenStream.getVideoTracks()[0]
+
+                Object.values(peers).forEach(peer => {
+
+                    const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+
+                    if (sender) {
+                        sender.replaceTrack(screenTrack)
+                    }
+
+                })
+
+                document.getElementById("localVideo").srcObject = screenStream
+
+                screenSharing = true
+
+                const btn = document.getElementById("screenBtn")
+                btn.style.background = "green"
+
+                screenTrack.onended = () => {
+                    stopScreenShare()
+                }
+
+            } catch (err) {
+                console.log("Screen share error:", err)
+            }
+        }
+        function stopScreenShare() {
+
+            const videoTrack = localStream.getVideoTracks()[0]
+
+            Object.values(peers).forEach(peer => {
+
+                const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+
+                if (sender) {
+                    sender.replaceTrack(videoTrack)
+                }
+
+            })
+
+            document.getElementById("localVideo").srcObject = localStream
+
+            screenSharing = false
+
+            document.getElementById("screenBtn").style.background = "#333"
+        }
+        function replaceVideoTrack(newTrack) {
+
+            Object.values(peers).forEach(peer => {
+
+                const sender = peer._pc.getSenders().find(s => s.track.kind === "video")
+
+                if (sender) {
+                    sender.replaceTrack(newTrack)
+                }
+
+            })
+        }
+
+        async function switchCamera() {
+
+            try {
+
+                if (videoDevices.length < 2) {
+                    console.log("No secondary camera")
+                    return
+                }
+
+                const oldTrack = localStream.getVideoTracks()[0]
+                oldTrack.stop()
+
+                currentCameraIndex = (currentCameraIndex + 1) % videoDevices.length
+
+                const newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: {
+                            exact: videoDevices[currentCameraIndex].deviceId
+                        }
+                    }
+                })
+
+                const newVideoTrack = newStream.getVideoTracks()[0]
+
+                replaceVideoTrack(newVideoTrack)
+
+                localStream.removeTrack(oldTrack)
+                localStream.addTrack(newVideoTrack)
+
+                document.getElementById("localVideo").srcObject = localStream
+
+                console.log("✅ Camera switched")
+
+                // 🔥 BUTTON FEEDBACK
+                const btn = document.getElementById("switchCamBtn")
+                btn.style.background = "green"
+
+                setTimeout(() => {
+                    btn.style.background = "#333"
+                }, 500)
+
+            } catch (err) {
+                console.log("❌ Camera switch error:", err)
+            }
         }
 
         function toggleCamera() {
@@ -351,6 +544,16 @@
             localStream.getVideoTracks().forEach(track => {
                 track.enabled = !cameraOff
             })
+
+            const btn = document.getElementById("cameraBtn")
+
+            if (cameraOff) {
+                btn.style.background = "red"
+                btn.innerHTML = `<i class="fa-solid fa-video-slash"></i>`
+            } else {
+                btn.style.background = "#333"
+                btn.innerHTML = `<i class="fa-solid fa-video"></i>`
+            }
         }
 
         /* ---------------- START FLOW ---------------- */
