@@ -23,6 +23,7 @@ webpush.setVapidDetails(
 const activeUsers = {}
 const activeCalls = {} // 🔥 store active calls
 const activeChats = {}
+const notificationBuffer = {} // 🔥 ADD THIS
 // import {Resend} from "resend"
 dns.setDefaultResultOrder("ipv4first")
 dotenv.config()
@@ -837,12 +838,24 @@ io.on("connection", (socket) => {
 
         if (!isInSameChat) {
 
+            const key = `${to}_${from}`
+
+            if (!notificationBuffer[key]) {
+                notificationBuffer[key] = []
+            }
+
+            notificationBuffer[key].push(bodyText)
+
+            // keep last 5 messages
+            notificationBuffer[key] = notificationBuffer[key].slice(-5)
+
             subs.forEach(s => {
                 webpush.sendNotification(
                     s.sub,
                     JSON.stringify({
                         title: senderName,
-                        body: bodyText,
+                        body: notificationBuffer[key][notificationBuffer[key].length - 1],
+                        messages: notificationBuffer[key], // 🔥 IMPORTANT
                         url: "/chat.html",
                         from: from,
                         type: "message",
@@ -895,12 +908,22 @@ io.on("connection", (socket) => {
                     ? senderUser.username
                     : from
 
+                const key = `${member}_${groupId}`
+
+                if (!notificationBuffer[key]) {
+                    notificationBuffer[key] = []
+                }
+
+                notificationBuffer[key].push(`${senderName}: ${message}`)
+                notificationBuffer[key] = notificationBuffer[key].slice(-5)
+
                 subs.forEach(s => {
                     webpush.sendNotification(
                         s.sub,
                         JSON.stringify({
                             title: groupname,
-                            body: `${senderName}:${message}`,
+                            body: notificationBuffer[key][notificationBuffer[key].length - 1],
+                            messages: notificationBuffer[key], // 🔥 IMPORTANT
                             url: "/chat.html",
                             from: groupId,
                             type: "group",
@@ -1166,17 +1189,17 @@ io.on("connection", (socket) => {
     })
     socket.on("call-rejected", ({ to, from }) => {
 
-    console.log("❌ Call rejected:", from, "→", to)
+        console.log("❌ Call rejected:", from, "→", to)
 
-    const callerSockets = onlineUsers[to]
+        const callerSockets = onlineUsers[to]
 
-    if (callerSockets) {
-        callerSockets.forEach(id => {
-            io.to(id).emit("call-rejected", { from })
-        })
-    }
+        if (callerSockets) {
+            callerSockets.forEach(id => {
+                io.to(id).emit("call-rejected", { from })
+            })
+        }
 
-})
+    })
     //active sockets
     socket.on("user-active", (email) => {
         activeUsers[email] = true
