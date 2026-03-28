@@ -1086,7 +1086,17 @@
 
             const accept = confirm(`Incoming ${type} call from ${from}`)
 
-            if (!accept) return
+            if (!accept) {
+                console.log("❌ Call rejected in chat.html")
+
+                // 🔥 VERY IMPORTANT
+                socket.emit("call-rejected", {
+                    to: from,
+                    from: loggedUser
+                })
+
+                return
+            }
 
             localStorage.setItem("callType", "receiver")
             localStorage.setItem("incomingOffer", JSON.stringify(offer))
