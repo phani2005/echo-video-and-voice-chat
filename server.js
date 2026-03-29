@@ -979,6 +979,11 @@ io.on("connection", (socket) => {
         }, {
             seen: true
         })
+        // 🔥 CLEAR NOTIFICATION BUFFER (IMPORTANT)
+        const key = `${to}_${from}`
+        if (notificationBuffer[key]) {
+            notificationBuffer[key].messages = []
+        }
         const senderSocketId = onlineUsers[from]
         if (senderSocketId) {
             io.to(senderSocketId).emit("messages-seen", {
