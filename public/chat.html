@@ -422,6 +422,11 @@
                     from: receiverEmail,
                     to: loggedUser
                 })
+            } else {
+                socket.emit("group-seen", {
+                    groupId: receiverEmail,
+                    user: loggedUser
+                })
             }
 
             document.getElementById("chatName").innerText =
@@ -697,10 +702,18 @@
             } else {
                 addMessage(msgObj, "received")
 
-                socket.emit("mark-seen", {
-                    from: msgObj.from,
-                    to: loggedUser
-                })
+                if (msgObj.isGroup) {
+                    // 🔥 ADD THIS
+                    socket.emit("group-seen", {
+                        groupId: receiverEmail,
+                        user: loggedUser
+                    })
+                } else {
+                    socket.emit("mark-seen", {
+                        from: msgObj.from,
+                        to: loggedUser
+                    })
+                }
             }
 
             chatBody.scrollTop = chatBody.scrollHeight
