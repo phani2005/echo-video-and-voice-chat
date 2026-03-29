@@ -838,33 +838,51 @@ io.on("connection", (socket) => {
 
         if (!isInSameChat) {
 
+            // const key = `${to}_${from}`
+
             const key = `${to}_${from}`
 
             if (!notificationBuffer[key]) {
-                notificationBuffer[key] = []
+                notificationBuffer[key] = {
+                    messages: [],
+                    timer: null
+                }
             }
 
-            notificationBuffer[key].push(bodyText)
+            notificationBuffer[key].messages.push(bodyText)
+            notificationBuffer[key].messages =
+                notificationBuffer[key].messages.slice(-5)
 
-            // keep last 5 messages
-            notificationBuffer[key] = notificationBuffer[key].slice(-5)
+            // 🔥 CLEAR OLD TIMER
+            if (notificationBuffer[key].timer) {
+                clearTimeout(notificationBuffer[key].timer)
+            }
 
-            subs.forEach(s => {
-                webpush.sendNotification(
-                    s.sub,
-                    JSON.stringify({
-                        title: senderName,
-                        body: notificationBuffer[key][notificationBuffer[key].length - 1],
-                        messages: notificationBuffer[key], // 🔥 IMPORTANT
-                        url: "/chat.html",
-                        from: from,
-                        type: "message",
-                        isGroup: false
+            // 🔥 DELAY SEND (IMPORTANT)
+            notificationBuffer[key].timer = setTimeout(async () => {
+
+                const msgs = notificationBuffer[key].messages
+
+                subs.forEach(s => {
+                    webpush.sendNotification(
+                        s.sub,
+                        JSON.stringify({
+                            title: senderName,
+                            body: msgs[msgs.length - 1],
+                            messages: msgs,
+                            url: "/chat.html",
+                            from: from,
+                            type: "message",
+                            isGroup: false
+                        })
+                    ).catch(err => {
+                        console.log("❌ Push error:", err.message)
                     })
-                ).catch(err => {
-                    console.log("❌ Push error:", err.message)
                 })
-            })
+
+                notificationBuffer[key].timer = null
+
+            }, 1500) // 🔥 1.5 sec delay
 
         }
     })
@@ -911,29 +929,45 @@ io.on("connection", (socket) => {
                 const key = `${member}_${groupId}`
 
                 if (!notificationBuffer[key]) {
-                    notificationBuffer[key] = []
+                    notificationBuffer[key] = {
+                        messages: [],
+                        timer: null
+                    }
                 }
 
-                notificationBuffer[key].push(`${senderName}: ${message}`)
-                notificationBuffer[key] = notificationBuffer[key].slice(-5)
+                notificationBuffer[key].messages.push(`${senderName}: ${message}`)
+                notificationBuffer[key].messages =
+                    notificationBuffer[key].messages.slice(-5)
 
-                subs.forEach(s => {
-                    webpush.sendNotification(
-                        s.sub,
-                        JSON.stringify({
-                            title: groupname,
-                            body: notificationBuffer[key][notificationBuffer[key].length - 1],
-                            messages: notificationBuffer[key], // 🔥 IMPORTANT
-                            url: "/chat.html",
-                            from: groupId,
-                            type: "group",
-                            name: groupname,
-                            isGroup: true
+                if (notificationBuffer[key].timer) {
+                    clearTimeout(notificationBuffer[key].timer)
+                }
+
+                notificationBuffer[key].timer = setTimeout(() => {
+
+                    const msgs = notificationBuffer[key].messages
+
+                    subs.forEach(s => {
+                        webpush.sendNotification(
+                            s.sub,
+                            JSON.stringify({
+                                title: groupname,
+                                body: msgs[msgs.length - 1],
+                                messages: msgs,
+                                url: "/chat.html",
+                                from: groupId,
+                                type: "group",
+                                name: groupname,
+                                isGroup: true
+                            })
+                        ).catch(err => {
+                            console.log("❌ Push error:", err.message)
                         })
-                    ).catch(err => {
-                        console.log("❌ Push error:", err.message)
                     })
-                })
+
+                    notificationBuffer[key].timer = null
+
+                }, 1500)
             }
         }
     })
