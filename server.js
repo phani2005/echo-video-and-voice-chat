@@ -905,6 +905,17 @@ io.on("connection", (socket) => {
             if (memberSocket) {
                 io.to(memberSocket).emit("receive-message", newMessage)
             }
+            const isInSameGroup =
+                activeChats[member] &&
+                activeChats[member].chatId == groupId &&
+                activeChats[member].isGroup === true
+
+            if (isInSameGroup) {
+                const key = `${member}_${groupId}`
+                if (notificationBuffer[key]) {
+                    notificationBuffer[key].messages = []
+                }
+            }
         }
         // 🔥 GROUP TEXT NOTIFICATION
         for (let member of group.members) {
