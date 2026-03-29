@@ -1003,6 +1003,17 @@ io.on("connection", (socket) => {
             })
         }
     })
+    socket.on("group-seen", ({ groupId, user }) => {
+
+        console.log("👀 Group seen:", groupId, user)
+
+        const key = `${user}_${groupId}`
+
+        if (notificationBuffer[key]) {
+            notificationBuffer[key].messages = []
+        }
+
+    })
     socket.on("leave-chat", (user) => {
         delete activeChats[user]
     })
