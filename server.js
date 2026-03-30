@@ -745,11 +745,7 @@ app.post("/delete-for-everyone", async (req, res) => {
     }
 
     await Message.updateMany(
-        { _id: { $in: validIds } },
-        {
-            deletedForEveryone: true,
-            message: "This message was deleted"
-        }
+        { _id: { $in: validIds } }
     )
 
     validMessages.forEach(msg => {
