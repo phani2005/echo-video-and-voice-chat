@@ -374,7 +374,9 @@
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
-            startRinging()
+            if(!callConnected){
+                startRinging()
+            }
 
             if (type !== "voice") return
 
@@ -497,6 +499,9 @@
             socket.emit("leave-chat", loggedUser)
 
             Object.values(peers).forEach(p => p.destroy())
+            peers = {}
+            callConnected = false   // 🔥 ADD THIS
+            seconds = 0
 
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
