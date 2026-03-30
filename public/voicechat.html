@@ -281,7 +281,7 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator && callType === "caller") {
+                if (initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
@@ -358,15 +358,10 @@
             await initLocalStream()
 
             // 🔥 EXACT GROUP LOGIC
-            // createPeer(user, true)
+            createPeer(user, true)
 
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (callType === "caller") {
-                createPeer(user, true)   // caller sends offer
-            } else {
-                createPeer(user, false)  // receiver sends answer
+            if (!peers[user]) {
+                createPeer(user, false)
             }
         })
 
