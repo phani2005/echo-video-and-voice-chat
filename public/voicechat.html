@@ -161,6 +161,7 @@
         let seconds = 0
         let timerInterval
         let incomingCaller = null
+        let callConnected = false
 
         /* ---------------- STREAM ---------------- */
 
@@ -177,6 +178,7 @@
         }
 
         function startRinging() {
+            if (callConnected) return
             ringtone.currentTime = 0
             ringtone.play().catch(() => { })
         }
@@ -297,6 +299,7 @@
             })
 
             peer.on("stream", stream => {
+                callConnected=true
                 stopRinging()          // 🔥 stop ringtone
                 clearTimeout(callTimeout) // 🔥 stop timeout
                 console.log("🔊 STREAM RECEIVED from:", user)
