@@ -507,22 +507,47 @@
 
             if (selectedMessages.size === 0) return alert("No messages selected")
 
+            const selectedIds = Array.from(selectedMessages)
+
+            // 🔥 GET ONLY MY MESSAGES
+            const myMessages = selectedIds.filter(id => {
+                const msg = document.querySelector(`.message[data-id="${id}"]`)
+                return msg && msg.classList.contains("sent")
+            })
+
+            // 🔥 IF NO OWN MESSAGE → FALLBACK TO DELETE FOR ME
+            if (myMessages.length === 0) {
+                await fetch("/delete-messages", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messageIds: selectedIds,
+                        userEmail: loggedUser
+                    })
+                })
+
+                location.reload()
+                return
+            }
+
+            // 🔥 DELETE ONLY OWN MESSAGES FOR EVERYONE
             await fetch("/delete-for-everyone", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    messageIds: Array.from(selectedMessages)
+                    messageIds: myMessages,
+                    userEmail: loggedUser
                 })
             })
 
             // ✅ Replace message text visually
-            selectedMessages.forEach(id => {
+            myMessages.forEach(id => {
                 const msg = document.querySelector(`.message[data-id="${id}"]`)
                 if (msg) {
                     msg.innerHTML = `
-                This message was deleted
-                <span class="time"></span>
-            `
+            This message was deleted
+            <span class="time"></span>
+        `
                 }
             })
 
