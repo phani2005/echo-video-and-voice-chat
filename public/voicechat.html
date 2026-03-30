@@ -320,6 +320,11 @@
 
             // ⏳ auto cut after 60 sec
             callTimeout = setTimeout(() => {
+                socket.emit("call-timeout", {
+                    from: loggedUser,
+                    to: receiver,
+                    type: "voice"
+                })
                 alert("Call not answered")
                 endCall()
             }, 60000)
