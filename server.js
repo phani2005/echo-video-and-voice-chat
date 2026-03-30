@@ -735,28 +735,43 @@ app.post("/delete-for-everyone", async (req, res) => {
 
     const messages = await Message.find({ _id: { $in: messageIds } })
 
+    // 🔥 FILTER ONLY SENDER MESSAGES
+    const validMessages = messages.filter(msg => msg.from === req.body.userEmail)
+
+    const validIds = validMessages.map(m => m._id)
+
+    if (validIds.length === 0) {
+        return res.json({ success: false })
+    }
+
     await Message.updateMany(
-        { _id: { $in: messageIds } },
+        { _id: { $in: validIds } },
         {
             deletedForEveryone: true,
             message: "This message was deleted"
         }
     )
 
-    // 🔥 Emit to both users
-    messages.forEach(msg => {
+    validMessages.forEach(msg => {
 
         if (msg.isGroup) {
             io.emit("message-deleted", { messageId: msg._id })
         } else {
-            const senderSocket = onlineUsers[msg.from]
-            const receiverSocket = onlineUsers[msg.to]
 
-            if (senderSocket)
-                io.to(senderSocket).emit("message-deleted", { messageId: msg._id })
+            const senderSockets = onlineUsers[msg.from]
+            const receiverSockets = onlineUsers[msg.to]
 
-            if (receiverSocket)
-                io.to(receiverSocket).emit("message-deleted", { messageId: msg._id })
+            if (senderSockets) {
+                senderSockets.forEach(id =>
+                    io.to(id).emit("message-deleted", { messageId: msg._id })
+                )
+            }
+
+            if (receiverSockets) {
+                receiverSockets.forEach(id =>
+                    io.to(id).emit("message-deleted", { messageId: msg._id })
+                )
+            }
         }
     })
 
