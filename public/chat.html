@@ -949,8 +949,7 @@
             else if (
                 msgObj.type === "file" ||
                 msgObj.type === "pdf" ||
-                msgObj.type === "word" ||
-                msgObj.type === "text"
+                msgObj.type === "word"
             ) {
 
                 const fileName = msgObj.originalName || msgObj.message.split("/").pop()
