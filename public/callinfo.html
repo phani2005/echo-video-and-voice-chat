@@ -61,6 +61,7 @@
 
                 div.className = "contact"
                 const isOutgoing = call.caller === user
+                const iconColor = call.missed ? "red" : "white"
                 div.innerHTML = `
 
 ${call.profileimage ?
@@ -76,8 +77,8 @@ ${call.profileimage ?
 <div class="timestamp">
 
 ${call.type === "voice"
-    ? `<i class="fa-solid fa-phone" style="color:${call.missed ? "red" : "white"}"></i>`
-    : `<i class="fa-solid fa-video" style="color:${call.missed ? "red" : "white"}"></i>`}
+    ? `<i class="fa-solid fa-phone" style="color:${iconColor}"></i>`
+    : `<i class="fa-solid fa-video" style="color:${iconColor}"></i>`}
 
 ${call.missed
     ? `<span style="color:red;">Missed</span>`
