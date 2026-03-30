@@ -1083,21 +1083,13 @@ io.on("connection", (socket) => {
             })
         }
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
-        const roomId = [from, to].sort().join("-")
-
-        const isAlreadyInCall =
-            activeCalls[roomId] &&
-            activeCalls[roomId].users.includes(to)
 
         const isInSameChat =
             activeChats[to] &&
             activeChats[to].chatId === from &&
             activeChats[to].isGroup === false
-        if (activeCalls[roomId]) {
-            return   // ✅ if call exists → NEVER send notification
-        }
 
-        if (!isInSameChat && !isAlreadyInCall) {
+        if (!isInSameChat) {
 
             const subs = await Subscription.find({ email: to })
 
@@ -1147,17 +1139,17 @@ io.on("connection", (socket) => {
             users: [from] // 👈 VERY IMPORTANT
         }
 
-        // const receiverSockets = onlineUsers[to]
+        const receiverSockets = onlineUsers[to]
 
-        // if (receiverSockets) {
-        //     receiverSockets.forEach(id => {
-        //         io.to(id).emit("incoming-call", {
-        //             from,
-        //             offer: null,
-        //             type
-        //         })
-        //     })
-        // }
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("incoming-call", {
+                    from,
+                    offer: null,
+                    type
+                })
+            })
+        }
 
         // 🔔 push notification
         const subs = await Subscription.find({ email: to })
@@ -1246,16 +1238,13 @@ io.on("connection", (socket) => {
 
         delete activeCalls[to]
 
-        // ✅ DO NOT SAVE IF MISSED CALL
-        if (duration > 0) {
-            await Call.create({
-                caller: from,
-                receiver: to,
-                type: type,
-                duration: duration,
-                timestamp: new Date()
-            })
-        }
+        await Call.create({
+            caller: from,
+            receiver: to,
+            type: type,
+            duration: duration,
+            timestamp: new Date()
+        })
 
     })
     socket.on("call-timeout", async ({ from, to, type }) => {
