@@ -640,15 +640,6 @@
                 delivered: false,
                 seen: false
             }
-
-            // Show instantly
-            // addMessage(tempMessage, "sent")
-
-            // socket.emit("private-message", {
-            //     to: receiverEmail,
-            //     from: loggedUser,
-            //     message: text
-            // })
             if (isGroup) {
                 socket.emit("group-message", {
                     groupId: receiverEmail,
@@ -1000,7 +991,8 @@
     </div>
     `
             } else {
-                content = msgObj.message
+                // content = msgObj.message
+                content = `<div class="msg-text">${msgObj.message}</div>`
             }
 
             let tick = ""
