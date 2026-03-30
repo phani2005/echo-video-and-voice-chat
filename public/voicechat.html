@@ -299,7 +299,7 @@
             })
 
             peer.on("stream", stream => {
-                callConnected=true
+                callConnected = true
                 stopRinging()          // 🔥 stop ringtone
                 clearTimeout(callTimeout) // 🔥 stop timeout
                 console.log("🔊 STREAM RECEIVED from:", user)
@@ -374,7 +374,7 @@
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
-            if(!callConnected){
+            if (!callConnected) {
                 startRinging()
             }
 
@@ -482,9 +482,10 @@
             window.location.href = "/chat.html"
         })
         document.body.addEventListener("click", () => {
-            ringtone.play().catch(() => { })
+            if (!callConnected) {
+                ringtone.play().catch(() => { })
+            }
         }, { once: true })
-
         function endCall() {
 
             stopRinging()
