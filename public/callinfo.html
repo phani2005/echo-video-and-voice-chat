@@ -60,7 +60,7 @@
                 const div = document.createElement("div")
 
                 div.className = "contact"
-
+                const isOutgoing = call.caller === user
                 div.innerHTML = `
 
 ${call.profileimage ?
@@ -81,10 +81,9 @@ ${call.type === "voice"
 
 ${call.missed
     ? `<span style="color:red;">Missed</span>`
-    : call.direction === "outgoing"
+    : isOutgoing
         ? "Outgoing"
         : "Incoming"}
-
 • ${formatDuration(call.duration)}
 
 <br>
