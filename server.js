@@ -1253,7 +1253,6 @@ io.on("connection", (socket) => {
             caller: from,
             receiver: to,
             type,
-            direction: "outgoing",
             duration: 0,
             missed: true
         })
