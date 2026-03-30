@@ -1142,6 +1142,7 @@ io.on("connection", (socket) => {
         }
     })
     socket.on("voice-call-start", async ({ to, from, type }) => {
+        try{
 
         console.log("📞 voice-call-start:", from, "→", to)
 
@@ -1149,7 +1150,7 @@ io.on("connection", (socket) => {
         const callId = [from, to].sort().join("-")
 
         // 🚫 prevent duplicate call
-        if (activeCalls[callId]&& activeCalls[callId].started) {
+        if (activeCalls[callId] && activeCalls[callId].started) {
             console.log("⚠️ Call already active, skipping notification")
             return
         }
@@ -1189,7 +1190,9 @@ io.on("connection", (socket) => {
             ).catch(err => {
                 console.log("❌ Push error:", err.message)
             })
-        })
+        })}catch(e){
+            console.log("Call error: ",e)
+        }
     })
 
     // ICE candidate exchange
@@ -1219,7 +1222,7 @@ io.on("connection", (socket) => {
         if (!activeCalls[roomId]) {
             activeCalls[roomId] = {
                 users: [],
-                started:false
+                started: false
             }
         }
 
@@ -1296,6 +1299,14 @@ io.on("connection", (socket) => {
     socket.on("call-rejected", ({ to, from }) => {
 
         console.log("❌ Call rejected:", from, "→", to)
+        const callId = [to, from].sort().join("-")
+
+        // ❌ if call already active → ignore reject
+        if (activeCalls[callId]) {
+            console.log("⚠️ Ignore false rejection")
+            return
+        }
+
 
         const callerSockets = onlineUsers[to]
 
