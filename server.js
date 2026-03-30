@@ -1093,6 +1093,9 @@ io.on("connection", (socket) => {
             activeChats[to] &&
             activeChats[to].chatId === from &&
             activeChats[to].isGroup === false
+        if (activeCalls[roomId] && activeCalls[roomId].users.includes(to)) {
+            return   // ❌ STOP sending notification if already in call
+        }
 
         if (!isInSameChat && !isAlreadyInCall) {
 
