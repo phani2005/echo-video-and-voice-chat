@@ -1149,7 +1149,7 @@ io.on("connection", (socket) => {
         const callId = [from, to].sort().join("-")
 
         // 🚫 prevent duplicate call
-        if (activeCalls[callId]) {
+        if (activeCalls[callId]&& activeCalls[callId].started) {
             console.log("⚠️ Call already active, skipping notification")
             return
         }
@@ -1218,7 +1218,8 @@ io.on("connection", (socket) => {
 
         if (!activeCalls[roomId]) {
             activeCalls[roomId] = {
-                users: []
+                users: [],
+                started:false
             }
         }
 
