@@ -358,10 +358,13 @@
             await initLocalStream()
 
             // 🔥 EXACT GROUP LOGIC
-            createPeer(user, true)
+            // createPeer(user, true)
 
-            if (!peers[user]) {
-                createPeer(user, false)
+            // if (!peers[user]) {
+            //     createPeer(user, false)
+            // }
+            if (callType === "caller") {
+                createPeer(user, true)
             }
         })
 
@@ -512,6 +515,9 @@
                 await initLocalStream()
                 joinCallRoom()
                 console.log("📥 Receiver joined")
+                socket.emit("request-offer", {
+                    from: loggedUser
+                })
             })()
         }
 
