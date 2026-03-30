@@ -1236,7 +1236,9 @@ io.on("connection", (socket) => {
             })
         }
 
-        delete activeCalls[to]
+        const roomId = [from, to].sort().join("-")
+        delete activeCalls[roomId]
+
 
         await Call.create({
             caller: from,
