@@ -358,10 +358,15 @@
             await initLocalStream()
 
             // 🔥 EXACT GROUP LOGIC
-            createPeer(user, true)
+            // createPeer(user, true)
 
-            if (!peers[user]) {
-                createPeer(user, false)
+            // if (!peers[user]) {
+            //     createPeer(user, false)
+            // }
+            if (callType === "caller") {
+                createPeer(user, true)   // caller sends offer
+            } else {
+                createPeer(user, false)  // receiver sends answer
             }
         })
 
