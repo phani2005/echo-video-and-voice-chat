@@ -1128,15 +1128,36 @@ io.on("connection", (socket) => {
             })
         }
     })
+    socket.on("webrtc-signal", ({ to, from, signal }) => {
+
+        const receiverSockets = onlineUsers[to]
+
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("webrtc-signal", {
+                    from,
+                    signal
+                })
+            })
+        }
+    })
     socket.on("voice-call-start", async ({ to, from, type }) => {
 
         console.log("📞 voice-call-start:", from, "→", to)
 
         // 🔥 CREATE ROOM LIKE GROUP CALL
-        const roomId = [from, to].sort().join("-")
+        const callId = [from, to].sort().join("-")
 
-        activeCalls[roomId] = {
-            users: [from] // 👈 VERY IMPORTANT
+        // 🚫 prevent duplicate call
+        if (activeCalls[callId]) {
+            console.log("⚠️ Call already active, skipping notification")
+            return
+        }
+
+        activeCalls[callId] = {
+            caller: from,
+            receiver: to,
+            type
         }
 
         const receiverSockets = onlineUsers[to]
@@ -1236,7 +1257,8 @@ io.on("connection", (socket) => {
             })
         }
 
-        delete activeCalls[to]
+        const callId = [from, to].sort().join("-")
+        delete activeCalls[callId]
 
         await Call.create({
             caller: from,
