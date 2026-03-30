@@ -1144,17 +1144,17 @@ io.on("connection", (socket) => {
             users: [from] // 👈 VERY IMPORTANT
         }
 
-        const receiverSockets = onlineUsers[to]
+        // const receiverSockets = onlineUsers[to]
 
-        if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("incoming-call", {
-                    from,
-                    offer: null,
-                    type
-                })
-            })
-        }
+        // if (receiverSockets) {
+        //     receiverSockets.forEach(id => {
+        //         io.to(id).emit("incoming-call", {
+        //             from,
+        //             offer: null,
+        //             type
+        //         })
+        //     })
+        // }
 
         // 🔔 push notification
         const subs = await Subscription.find({ email: to })
