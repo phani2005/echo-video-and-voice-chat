@@ -544,10 +544,7 @@
             myMessages.forEach(id => {
                 const msg = document.querySelector(`.message[data-id="${id}"]`)
                 if (msg) {
-                    msg.innerHTML = `
-            This message was deleted
-            <span class="time"></span>
-        `
+                    msg.remove()   // 🔥 FULL DELETE FROM UI
                 }
             })
 
@@ -568,10 +565,7 @@
             const msg = document.querySelector(`.message[data-id="${messageId}"]`)
 
             if (msg) {
-                msg.innerHTML = `
-            This message was deleted
-            <span class="time"></span>
-        `
+                msg.remove()   // 🔥 REMOVE COMPLETELY
             }
         })
         function exitSelectMode() {
