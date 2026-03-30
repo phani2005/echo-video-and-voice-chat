@@ -282,16 +282,11 @@
                 console.log("📡 SIGNAL:", data.type)
 
                 if (initiator) {
-                    // socket.emit("call-user", {
-                    //     to: user,
-                    //     from: loggedUser,
-                    //     offer: data,
-                    //     type: "voice"
-                    // })
-                    socket.emit("webrtc-signal", {
+                    socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
-                        signal: data
+                        offer: data,
+                        type: "voice"
                     })
                 } else {
                     socket.emit("answer-call", {
@@ -363,32 +358,17 @@
             await initLocalStream()
 
             // 🔥 EXACT GROUP LOGIC
-            // createPeer(user, true)
+            createPeer(user, true)
 
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (loggedUser < user) {
-                createPeer(user, true)
-            } else {
+            if (!peers[user]) {
                 createPeer(user, false)
             }
         })
 
-        socket.on("webrtc-signal", ({ from, signal }) => {
-
-            if (!peers[from]) {
-                createPeer(from, false)
-            }
-
-            peers[from].signal(signal)
-        })
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
-            if (!offer) {
-                startRinging()
-            }
+            startRinging()
 
             if (type !== "voice") return
 
@@ -398,10 +378,10 @@
             console.log("current chat is: ", currentChat)
 
             // ❌ IF NOT SAME CHAT → DO NOTHING (USE NOTIFICATION)
-            // if (currentChat !== from) {
-            //     alert("❌ Not active chat → skip popup")
-            //     return
-            // }
+            if (currentChat !== from) {
+                alert("❌ Not active chat → skip popup")
+                return
+            }
             // ✅ VERY IMPORTANT: store real caller
             incomingCaller = from
 
