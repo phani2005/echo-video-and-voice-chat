@@ -1083,13 +1083,18 @@ io.on("connection", (socket) => {
             })
         }
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
+        const roomId = [from, to].sort().join("-")
+
+        const isAlreadyInCall =
+            activeCalls[roomId] &&
+            activeCalls[roomId].users.includes(to)
 
         const isInSameChat =
             activeChats[to] &&
             activeChats[to].chatId === from &&
             activeChats[to].isGroup === false
 
-        if (!isInSameChat) {
+        if (!isInSameChat && !isAlreadyInCall) {
 
             const subs = await Subscription.find({ email: to })
 
@@ -1238,13 +1243,16 @@ io.on("connection", (socket) => {
 
         delete activeCalls[to]
 
-        await Call.create({
-            caller: from,
-            receiver: to,
-            type: type,
-            duration: duration,
-            timestamp: new Date()
-        })
+        // ✅ DO NOT SAVE IF MISSED CALL
+        if (duration > 0) {
+            await Call.create({
+                caller: from,
+                receiver: to,
+                type: type,
+                duration: duration,
+                timestamp: new Date()
+            })
+        }
 
     })
     socket.on("call-timeout", async ({ from, to, type }) => {
