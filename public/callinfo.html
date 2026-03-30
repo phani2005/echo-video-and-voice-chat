@@ -82,7 +82,7 @@ ${call.type === "voice"
 
 ${call.missed
     ? `<span style="color:red;">Missed</span>`
-    : isOutgoing
+    : call.direction === "outgoing"
         ? "Outgoing"
         : "Incoming"}
 • ${formatDuration(call.duration)}
