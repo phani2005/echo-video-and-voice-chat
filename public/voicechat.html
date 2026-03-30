@@ -282,11 +282,16 @@
                 console.log("📡 SIGNAL:", data.type)
 
                 if (initiator) {
-                    socket.emit("call-user", {
+                    // socket.emit("call-user", {
+                    //     to: user,
+                    //     from: loggedUser,
+                    //     offer: data,
+                    //     type: "voice"
+                    // })
+                    socket.emit("webrtc-signal", {
                         to: user,
                         from: loggedUser,
-                        offer: data,
-                        type: "voice"
+                        signal: data
                     })
                 } else {
                     socket.emit("answer-call", {
@@ -358,17 +363,32 @@
             await initLocalStream()
 
             // 🔥 EXACT GROUP LOGIC
-            createPeer(user, true)
+            // createPeer(user, true)
 
-            if (!peers[user]) {
+            // if (!peers[user]) {
+            //     createPeer(user, false)
+            // }
+            if (loggedUser < user) {
+                createPeer(user, true)
+            } else {
                 createPeer(user, false)
             }
         })
 
+        socket.on("webrtc-signal", ({ from, signal }) => {
+
+            if (!peers[from]) {
+                createPeer(from, false)
+            }
+
+            peers[from].signal(signal)
+        })
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
-            startRinging()
+            if (!offer) {
+                startRinging()
+            }
 
             if (type !== "voice") return
 
