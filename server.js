@@ -745,11 +745,7 @@ app.post("/delete-for-everyone", async (req, res) => {
     }
 
     await Message.updateMany(
-        { _id: { $in: validIds } },
-        {
-            deletedForEveryone: true,
-            message: "This message was deleted"
-        }
+        { _id: { $in: validIds } }
     )
 
     validMessages.forEach(msg => {
@@ -1248,6 +1244,18 @@ io.on("connection", (socket) => {
             type: type,
             duration: duration,
             timestamp: new Date()
+        })
+
+    })
+    socket.on("call-timeout", async ({ from, to, type }) => {
+
+        await Call.create({
+            caller: from,
+            receiver: to,
+            type,
+            direction: "outgoing",
+            duration: 0,
+            missed: true
         })
 
     })
