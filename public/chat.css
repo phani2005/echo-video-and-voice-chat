@@ -423,7 +423,12 @@ body{
 }
 
 /* EMOJI CONTAINER */
-
+.msg-text{
+    text-transform: none !important;
+    font-size: 14px;
+    color: inherit;
+    word-break: break-word;
+}
 .emoji-container{
 
     position:absolute;
