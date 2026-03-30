@@ -1128,37 +1128,15 @@ io.on("connection", (socket) => {
             })
         }
     })
-    socket.on("webrtc-signal", ({ to, from, signal }) => {
-
-        const receiverSockets = onlineUsers[to]
-
-        if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("webrtc-signal", {
-                    from,
-                    signal
-                })
-            })
-        }
-    })
     socket.on("voice-call-start", async ({ to, from, type }) => {
-        try{
 
         console.log("📞 voice-call-start:", from, "→", to)
 
         // 🔥 CREATE ROOM LIKE GROUP CALL
-        const callId = [from, to].sort().join("-")
+        const roomId = [from, to].sort().join("-")
 
-        // 🚫 prevent duplicate call
-        if (activeCalls[callId] && activeCalls[callId].started) {
-            console.log("⚠️ Call already active, skipping notification")
-            return
-        }
-
-        activeCalls[callId] = {
-            caller: from,
-            receiver: to,
-            type
+        activeCalls[roomId] = {
+            users: [from] // 👈 VERY IMPORTANT
         }
 
         const receiverSockets = onlineUsers[to]
@@ -1190,9 +1168,7 @@ io.on("connection", (socket) => {
             ).catch(err => {
                 console.log("❌ Push error:", err.message)
             })
-        })}catch(e){
-            console.log("Call error: ",e)
-        }
+        })
     })
 
     // ICE candidate exchange
@@ -1221,8 +1197,7 @@ io.on("connection", (socket) => {
 
         if (!activeCalls[roomId]) {
             activeCalls[roomId] = {
-                users: [],
-                started: false
+                users: []
             }
         }
 
@@ -1261,8 +1236,7 @@ io.on("connection", (socket) => {
             })
         }
 
-        const callId = [from, to].sort().join("-")
-        delete activeCalls[callId]
+        delete activeCalls[to]
 
         await Call.create({
             caller: from,
@@ -1299,14 +1273,6 @@ io.on("connection", (socket) => {
     socket.on("call-rejected", ({ to, from }) => {
 
         console.log("❌ Call rejected:", from, "→", to)
-        const callId = [to, from].sort().join("-")
-
-        // ❌ if call already active → ignore reject
-        if (activeCalls[callId]) {
-            console.log("⚠️ Ignore false rejection")
-            return
-        }
-
 
         const callerSockets = onlineUsers[to]
 
