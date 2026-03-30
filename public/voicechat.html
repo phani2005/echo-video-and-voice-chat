@@ -150,6 +150,11 @@
         const ringtone = document.getElementById("ringtone")
 
         socket.emit("register-user", loggedUser)
+        socket.emit("join-chat", {
+            user: loggedUser,
+            chatId: receiver,
+            isGroup: false
+        })
 
         let localStream
         let peers = {}
@@ -483,6 +488,7 @@
                 type: "voice",
                 duration: seconds
             })
+            socket.emit("leave-chat", loggedUser)
 
             Object.values(peers).forEach(p => p.destroy())
 
