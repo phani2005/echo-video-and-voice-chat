@@ -524,6 +524,18 @@ app.post("/deletecontact", async (req, res) => {
 
     res.json({ success: true })
 })
+async function getDisplayName(viewerEmail, senderEmail) {
+
+    const viewer = await User.findOne({ email: viewerEmail })
+
+    if (viewer) {
+        const saved = viewer.contacts.find(c => c.email === senderEmail)
+        if (saved) return saved.name
+    }
+
+    const sender = await User.findOne({ email: senderEmail })
+    return sender ? sender.username : senderEmail
+}
 app.post("/upload-message", upload.single("file"), async (req, res) => {
     try {
 
@@ -594,11 +606,12 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
 
                     const subs = await Subscription.find({ email: member })
                     const groupname = group.name
-                    const senderUser = await User.findOne({ email: from })
+                    // const senderUser = await User.findOne({ email: from })
 
-                    const senderName = senderUser
-                        ? senderUser.username
-                        : from
+                    // const senderName = senderUser
+                    //     ? senderUser.username
+                    //     : from
+                    const senderName = await getDisplayName(member, from)
 
 
                     subs.forEach(s => {
@@ -659,9 +672,7 @@ app.post("/upload-message", upload.single("file"), async (req, res) => {
                 const subs = await Subscription.find({ email: to })
                 const senderUser = await User.findOne({ email: from })
 
-                const senderName = senderUser
-                    ? senderUser.username
-                    : from
+                const senderName = await getDisplayName(to, from)
 
                 subs.forEach(s => {
                     webpush.sendNotification(
@@ -838,9 +849,7 @@ io.on("connection", (socket) => {
         const subs = await Subscription.find({ email: to })
         const senderUser = await User.findOne({ email: from })
 
-        const senderName = senderUser
-            ? senderUser.username
-            : from
+        const senderName = await getDisplayName(to, from)
 
         const isInSameChat =
             activeChats[to] &&
@@ -944,9 +953,7 @@ io.on("connection", (socket) => {
                 const senderUser = await User.findOne({ email: from })
                 const groupname = group.name
 
-                const senderName = senderUser
-                    ? senderUser.username
-                    : from
+                const senderName = await getDisplayName(member, from)
 
                 const key = `${member}_${groupId}`
 
@@ -1092,13 +1099,14 @@ io.on("connection", (socket) => {
         if (!isInSameChat) {
 
             const subs = await Subscription.find({ email: to })
+            const senderName = await getDisplayName(to, from)
 
             subs.forEach(s => {
                 webpush.sendNotification(
                     s.sub,
                     JSON.stringify({
                         title: "Incoming Call",
-                        body: callTypeText + " from " + from,
+                        body: callTypeText + " from " + senderName,
                         url: type === "video"
                             ? "/videocall.html"
                             : "/voicechat.html",
@@ -1153,13 +1161,14 @@ io.on("connection", (socket) => {
 
         // 🔔 push notification
         const subs = await Subscription.find({ email: to })
+        const senderName = await getDisplayName(to, from)
 
         subs.forEach(s => {
             webpush.sendNotification(
                 s.sub,
                 JSON.stringify({
                     title: "Incoming Call",
-                    body: `📞 Voice call from ${from}`,
+                    body: `📞 Voice call from ${senderName}`,
                     url: "/voicechat.html",
                     type: "voice",
                     from: from,
@@ -1386,13 +1395,14 @@ io.on("connection", (socket) => {
             const userSubs = await Subscription.find({ email: member })
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
+            const senderName = await getDisplayName(member, from)
 
             userSubs.forEach(s => {
                 webpush.sendNotification(
                     s.sub,
                     JSON.stringify({
                         title: "Group Call",
-                        body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${from}`,
+                        body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${senderName}`,
                         url: type === "video"
                             ? "/groupvideocall.html"
                             : "/groupvoicecall.html",
