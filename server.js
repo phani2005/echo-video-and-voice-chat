@@ -828,13 +828,25 @@ io.on("connection", (socket) => {
             return
         }
 
+        let replyData = null
+
+        if (replyTo) {
+            const replyName = await getDisplayName(from, replyTo.from)
+
+            replyData = {
+                messageId: replyTo.messageId,
+                text: replyTo.text,
+                from: replyTo.from,
+                name: replyName   // 🔥 ADD THIS
+            }
+        }
+
         const newMessage = await Message.create({
             from,
             to,
             message,
-            replyTo
+            replyTo: replyData
         })
-
         const receiverSocketId = onlineUsers[to]
         const senderSocketId = onlineUsers[from]
 
@@ -912,7 +924,7 @@ io.on("connection", (socket) => {
 
         }
     })
-    socket.on("group-message", async ({ groupId, from, message,replyTo }) => {
+    socket.on("group-message", async ({ groupId, from, message, replyTo }) => {
 
         if (!mongoose.Types.ObjectId.isValid(groupId)) return
 
