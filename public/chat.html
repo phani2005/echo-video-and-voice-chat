@@ -148,7 +148,8 @@
 
             document.getElementById("replyPreview").style.display = "block"
             document.getElementById("replyText").innerText =
-                msgObj.message || "File"
+                (msgObj.from === loggedUser ? "You: " : "") +
+                (msgObj.message || "File")
         }
 
         function cancelReply() {
