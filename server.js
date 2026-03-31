@@ -1412,6 +1412,7 @@ io.on("connection", (socket) => {
                 })
             }
             const userSubs = await Subscription.find({ email: member })
+            const groupName=group.name
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
             const senderName = await getDisplayName(member, from)
@@ -1420,7 +1421,7 @@ io.on("connection", (socket) => {
                 webpush.sendNotification(
                     s.sub,
                     JSON.stringify({
-                        title: "Group Call",
+                        title: groupName,
                         body: `${type === "video" ? "📹 Video" : "📞 Voice"} call from ${senderName}`,
                         url: type === "video"
                             ? "/groupvideocall.html"
