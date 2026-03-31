@@ -963,24 +963,26 @@
                 }
             })
             let replyBlock = ""
-            let replyName = msgObj.replyTo.from
-
-            if (msgObj.replyTo.from === loggedUser) {
-                replyName = "You"
-            } else if (contactNames[msgObj.replyTo.from]) {
-                replyName = contactNames[msgObj.replyTo.from]
-            }
 
             if (msgObj.replyTo) {
+
+                let replyName = msgObj.replyTo.name || msgObj.replyTo.from
+
+                if (msgObj.replyTo.from === loggedUser) {
+                    replyName = "You"
+                } else if (contactNames[msgObj.replyTo.from]) {
+                    replyName = contactNames[msgObj.replyTo.from]
+                }
+
                 replyBlock = `
-    <div class="reply-box" 
-         onclick="scrollToMessage('${msgObj.replyTo.messageId}')"
-         style="border-left:3px solid green; padding:5px; margin-bottom:5px; background:#f0f0f0; cursor:pointer;">
-         
-        <small>${replyName}</small><br>
-        ${msgObj.replyTo.text || "File"}
-    </div>
-`
+        <div class="reply-box" 
+             onclick="scrollToMessage('${msgObj.replyTo.messageId}')"
+             style="border-left:3px solid green; padding:5px; margin-bottom:5px; background:#f0f0f0; cursor:pointer;">
+             
+            <small>${replyName}</small><br>
+            ${msgObj.replyTo.text || "File"}
+        </div>
+    `
             }
 
             let content = ""
