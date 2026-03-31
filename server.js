@@ -291,16 +291,42 @@ app.post("/create-group", upload.single("photo"), async (req, res) => {
 
     const { groupName, members, admin } = req.body
 
-    let memberList = members.split(",").map(e => e.trim())
+    // 🔥 SPLIT INPUT
+    let inputList = members.split(",").map(e => e.trim().toLowerCase())
 
-    // Add admin automatically
-    if (!memberList.includes(admin)) {
-        memberList.push(admin)
+    // 🔥 GET ADMIN USER
+    const adminUser = await User.findOne({ email: admin })
+
+    let finalMembers = []
+
+    for (let input of inputList) {
+
+        if (input.includes("@")) {
+            finalMembers.push(input)
+        } else {
+            const foundContact = adminUser.contacts.find(
+                c => c.name.toLowerCase() === input
+            )
+
+            if (foundContact) {
+                finalMembers.push(foundContact.email)
+            } else {
+                console.log("❌ Contact not found:", input)
+            }
+        }
+    }
+
+    // 🔥 REMOVE DUPLICATES
+    finalMembers = [...new Set(finalMembers)]
+
+    // 🔥 ADD ADMIN
+    if (!finalMembers.includes(admin)) {
+        finalMembers.push(admin)
     }
 
     const newGroup = await Group.create({
         name: groupName,
-        members: memberList,
+        members: finalMembers,
         admin,
         profileimage: req.file ? req.file.path : ""
     })
