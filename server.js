@@ -84,6 +84,11 @@ const messageSchema = new mongoose.Schema({
     from: String,
     to: String, // keep for private
     message: String,
+    replyTo: {
+        messageId: String,
+        text: String,
+        from: String
+    },
     type: { type: String, default: "text" },
 
     isGroup: { type: Boolean, default: false },
@@ -809,7 +814,7 @@ io.on("connection", (socket) => {
             socket.emit("receive-message", msg)
         }
     })
-    socket.on("private-message", async ({ to, from, message }) => {
+    socket.on("private-message", async ({ to, from, message, replyTo }) => {
 
         const sender = await User.findOne({ email: from })
 
@@ -826,7 +831,8 @@ io.on("connection", (socket) => {
         const newMessage = await Message.create({
             from,
             to,
-            message
+            message,
+            replyTo
         })
 
         const receiverSocketId = onlineUsers[to]
@@ -906,7 +912,7 @@ io.on("connection", (socket) => {
 
         }
     })
-    socket.on("group-message", async ({ groupId, from, message }) => {
+    socket.on("group-message", async ({ groupId, from, message,replyTo }) => {
 
         if (!mongoose.Types.ObjectId.isValid(groupId)) return
 
@@ -917,7 +923,8 @@ io.on("connection", (socket) => {
             from,
             message,
             isGroup: true,
-            groupId
+            groupId,
+            replyTo
         })
 
         for (let member of group.members) {
