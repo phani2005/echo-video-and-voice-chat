@@ -54,7 +54,10 @@
             </div> -->
 
         </div>
-
+        <div id="replyPreview" style="display:none; background:#eee; padding:8px;">
+            <span id="replyText"></span>
+            <button onclick="cancelReply()">❌</button>
+        </div>
         <!-- Message Input -->
         <div class="chat-input">
             <i class="fa-regular fa-face-smile" id="emojiBtn"></i>
@@ -63,10 +66,7 @@
             </div>
             <!-- <emoji-picker id="emojiPicker" style="display:none;"></emoji-picker> -->
             <input type="text" placeholder="Type a message" id="messageInput">
-            <div id="replyPreview" style="display:none; background:#eee; padding:8px;">
-                <span id="replyText"></span>
-                <button onclick="cancelReply()">❌</button>
-            </div>
+
             <input type="file" id="fileInput" hidden>
             <i class="fa-solid fa-paperclip" id="attachBtn"></i>
             <button id="sendBtn">
