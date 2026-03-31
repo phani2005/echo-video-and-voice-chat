@@ -63,6 +63,10 @@
             </div>
             <!-- <emoji-picker id="emojiPicker" style="display:none;"></emoji-picker> -->
             <input type="text" placeholder="Type a message" id="messageInput">
+            <div id="replyPreview" style="display:none; background:#eee; padding:8px;">
+                <span id="replyText"></span>
+                <button onclick="cancelReply()">❌</button>
+            </div>
             <input type="file" id="fileInput" hidden>
             <i class="fa-solid fa-paperclip" id="attachBtn"></i>
             <button id="sendBtn">
@@ -88,6 +92,7 @@
         const fileInput = document.getElementById("fileInput")
         let selectMode = false
         let selectedMessages = new Set()
+        let replyingMessage = null
 
         attachBtn.addEventListener("click", () => {
             fileInput.click()
@@ -137,6 +142,18 @@
                     credential: "openrelayproject"
                 }
             ]
+        }
+        function startReply(msgObj) {
+            replyingMessage = msgObj
+
+            document.getElementById("replyPreview").style.display = "block"
+            document.getElementById("replyText").innerText =
+                msgObj.message || "File"
+        }
+
+        function cancelReply() {
+            replyingMessage = null
+            document.getElementById("replyPreview").style.display = "none"
         }
         document.querySelector(".fa-phone").addEventListener("click", () => {
             localStorage.setItem("callType", "caller")
@@ -657,31 +674,34 @@
             const text = input.value.trim()
             if (!text) return
 
-            // Create temporary message object
-            const tempMessage = {
-                _id: Date.now(),   // temporary id
+            const payload = {
+                to: receiverEmail,
+                from: loggedUser,
                 message: text,
-                timestamp: new Date(),
-                delivered: false,
-                seen: false
+                replyTo: replyingMessage
+                    ? {
+                        messageId: replyingMessage._id,
+                        text: replyingMessage.message,
+                        from: replyingMessage.from
+                    }
+                    : null
             }
+
             if (isGroup) {
                 socket.emit("group-message", {
                     groupId: receiverEmail,
-                    from: loggedUser,
-                    message: text
+                    ...payload
                 })
             } else {
-                socket.emit("private-message", {
-                    to: receiverEmail,
-                    from: loggedUser,
-                    message: text
-                })
+                socket.emit("private-message", payload)
             }
 
             input.value = ""
+            cancelReply()
             chatBody.scrollTop = chatBody.scrollHeight
         }
+
+        // chatBody.scrollTop = chatBody.scrollHeight
 
         socket.on("receive-message", (msgObj) => {
 
@@ -928,6 +948,32 @@
             insertDateDivider(msgObj.timestamp)
             const msg = document.createElement("div")
             msg.className = "message " + type
+            let startX = 0
+
+            msg.addEventListener("touchstart", (e) => {
+                startX = e.touches[0].clientX
+            })
+
+            msg.addEventListener("touchend", (e) => {
+                let endX = e.changedTouches[0].clientX
+
+                if (endX - startX > 80 && Math.abs(endX - startX) > 50) { // swipe right
+                    startReply(msgObj)
+                }
+            })
+            let replyBlock = ""
+
+            if (msgObj.replyTo) {
+                replyBlock = `
+        <div class="reply-box" 
+             onclick="scrollToMessage('${msgObj.replyTo.messageId}')"
+             style="border-left:3px solid green; padding:5px; margin-bottom:5px; background:#f0f0f0; cursor:pointer;">
+             
+            <small>${msgObj.replyTo.from === loggedUser ? "You" : msgObj.replyTo.from}</small><br>
+            ${msgObj.replyTo.text || "File"}
+        </div>
+    `
+            }
 
             let content = ""
             let senderLabel = ""
@@ -1030,10 +1076,11 @@
             const time = formatTime(msgObj.timestamp)
 
             msg.innerHTML = `
-            ${senderLabel}
-            ${content}
-                <span class="time">${time} ${tick}</span>
-            `
+    ${senderLabel}
+    ${replyBlock}   // 🔥 ADD THIS LINE
+    ${content}
+    <span class="time">${time} ${tick}</span>
+`
             msg.setAttribute("data-id", msgObj._id)
             if (selectMode) {
                 const checkbox = document.createElement("input")
@@ -1049,7 +1096,24 @@
 
                 msg.prepend(checkbox)
             }
+            msg.addEventListener("dblclick", () => {
+                startReply(msgObj)
+            })
             chatBody.appendChild(msg)
+        }
+        function scrollToMessage(id) {
+
+            const target = document.querySelector(`.message[data-id="${id}"]`)
+
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "center" })
+
+                target.style.background = "#ffff99"
+
+                setTimeout(() => {
+                    target.style.background = ""
+                }, 2000)
+            }
         }
         function closeImageModal() {
             document.getElementById("imageModal").style.display = "none"
