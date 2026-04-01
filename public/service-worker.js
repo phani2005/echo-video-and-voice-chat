@@ -6,26 +6,37 @@ self.addEventListener("push", function (event) {
 
     const data = event.data.json()
 
-    // 🔥 UNIQUE TAG PER CHAT (VERY IMPORTANT)
-    const tag = data.isGroup ? data.from : data.from
+    // 🔥 HANDLE ENDED CALL UI
+    let title = data.title
+    let body = data.body
 
-    // 🔥 MULTIPLE MESSAGES SUPPORT
-    let messages = data.messages || [data.body]
+    if (data.status === "ended") {
 
-    const options = {
-        body: messages.join("\n"),   // 👈 show multiple messages
-        icon: "/icon.png",
-        badge: "/icon.png",
-        tag: tag,                   // 🔥 SAME TAG = SINGLE NOTIFICATION
-        renotify: true,             // 🔥 vibrate again
-        data: {
-            ...data,
-            messages: messages
+        const caller = data.from || "Unknown"
+
+        if (data.isGroup) {
+            title = "❌ Group Call Ended"
+            body = `${caller} started a call (missed)`
+        } else {
+            title = "❌ Missed " + (data.type === "video" ? "Video Call" : "Voice Call")
+            body = `From: ${caller}`
         }
     }
 
+    const options = {
+        body: body,
+        icon: "/icon.png",
+        badge: "/icon.png",
+
+        tag: data.tag || data.from, // 🔥 IMPORTANT (same notification)
+
+        renotify: true,
+
+        data: data
+    }
+
     event.waitUntil(
-        self.registration.showNotification(data.title, options)
+        self.registration.showNotification(title, options)
     )
 })
 
