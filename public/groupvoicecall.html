@@ -216,6 +216,12 @@
             startRinging()
 
             callTimeout = setTimeout(() => {
+                socket.emit("call-timeout", {
+                    from: loggedUser,
+                    to: groupId,
+                    type: "voice",   // or "video"
+                    isGroup: true
+                })
                 alert("No one joined the call")
                 endCall()
             }, 60000)
