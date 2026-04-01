@@ -279,7 +279,8 @@
                         to: userEmail,
                         offer: data,
                         from: loggedUser,
-                        type: "video"
+                        type: "video",
+                        isGroupCall:true
                     })
                 } else {
                     socket.emit("answer-call", {
