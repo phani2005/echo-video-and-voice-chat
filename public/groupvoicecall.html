@@ -293,7 +293,7 @@
                         offer: data,
                         from: loggedUser,
                         type: "voice",
-                        isGroupCall:true
+                        isGroupCall: true
                     })
 
                 } else {
@@ -393,7 +393,9 @@
         socket.on("call-ended", () => {
 
             alert("Call ended")
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            window.location.href =
+                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
         })
 
         function toggleMute() {
