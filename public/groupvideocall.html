@@ -280,7 +280,7 @@
                         offer: data,
                         from: loggedUser,
                         type: "video",
-                        isGroupCall:true
+                        isGroupCall: true
                     })
                 } else {
                     socket.emit("answer-call", {
@@ -322,7 +322,9 @@
 
         socket.on("call-ended", () => {
             alert("Call ended")
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            window.location.href =
+                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
         })
 
         /* CONTROLS */
