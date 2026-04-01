@@ -1118,7 +1118,7 @@ io.on("connection", (socket) => {
 
     })
     // User calling someone
-    socket.on("call-user", async ({ to, offer, from, type, isGroupCall }) => {
+    socket.on("call-user", async ({ to, offer, from, type, isGroupCall, isInitialCall }) => {
         console.log("call-user function from server")
         console.log("call-user to: ", to, " from: ", from, " type: ", type, " offer: ", offer)
 
@@ -1134,7 +1134,7 @@ io.on("connection", (socket) => {
                 })
             })
         }
-        if (isGroupCall) return
+        if (isGroupCall || isInitialCall === false) return
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
 
         const isInSameChat =
