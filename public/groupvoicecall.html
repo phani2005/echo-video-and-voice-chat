@@ -429,7 +429,9 @@
 
             clearInterval(timerInterval)
 
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            window.location.href =
+                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
         }
 
         function goBack() {
