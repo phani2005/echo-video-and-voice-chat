@@ -331,7 +331,8 @@
                 socket.emit("call-timeout", {
                     from: loggedUser,
                     to: receiver,
-                    type: "voice"
+                    type: "voice",
+                    isGroup: false
                 })
                 alert("Call not answered")
                 endCall()
