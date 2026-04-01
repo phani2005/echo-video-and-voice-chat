@@ -256,6 +256,12 @@
             startRinging() // 🔥 NEW
 
             callTimeout = setTimeout(() => {
+                socket.emit("call-timeout", {
+                    from: loggedUser,
+                    to: receiver,
+                    type: "video",
+                    isGroup: false
+                })
                 alert("Call not answered")
                 endCall()
             }, 60000)
