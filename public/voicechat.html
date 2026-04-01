@@ -485,7 +485,13 @@
             clearInterval(timerInterval)
             alert("Call rejected")
 
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            const receiver = localStorage.getItem("chatWith")
+            const isGroup = localStorage.getItem("isGroup") === "true"
+            const name = localStorage.getItem("chatName") || ""
+
+            window.location.href =
+                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
         document.body.addEventListener("click", () => {
             if (!callConnected) {
@@ -516,7 +522,13 @@
 
             clearInterval(timerInterval)
 
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            const receiver = localStorage.getItem("chatWith")
+            const isGroup = localStorage.getItem("isGroup") === "true"
+            const name = localStorage.getItem("chatName") || ""
+
+            window.location.href =
+                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         }
 
         /* ---------------- START FLOW ---------------- */
