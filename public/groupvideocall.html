@@ -323,8 +323,10 @@
         socket.on("call-ended", () => {
             alert("Call ended")
             // window.location.href = "/chat.html"
+            const name = localStorage.getItem("chatName") || "Group"
+
             window.location.href =
-                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
+                `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
         })
 
         /* CONTROLS */
@@ -529,8 +531,10 @@
             }
 
             // window.location.href = "/chat.html"
+            const name = localStorage.getItem("chatName") || "Group"
+
             window.location.href =
-                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
+                `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
         }
         document.addEventListener("visibilitychange", () => {
 
