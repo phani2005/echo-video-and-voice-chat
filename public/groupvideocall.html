@@ -528,7 +528,9 @@
                 localStream.getTracks().forEach(t => t.stop())
             }
 
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            window.location.href =
+                `/chat.html?from=${groupId}&isGroup=true&name=${document.getElementById("groupName").innerText}&openChat=true`
         }
         document.addEventListener("visibilitychange", () => {
 
