@@ -1125,17 +1125,44 @@ io.on("connection", (socket) => {
         const receiverSockets = onlineUsers[to]
         console.log("call-user receiversockets: ", receiverSockets)
 
+        // if (receiverSockets) {
+        //     receiverSockets.forEach(id => {
+        //         io.to(id).emit("incoming-call", {
+        //             from,
+        //             offer: offer || null,
+        //             type
+        //         })
+        //     })
+        // }
+        // ✅ ONLY SEND incoming-call FOR INITIAL CALL OR GROUP
         if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("incoming-call", {
-                    from,
-                    offer: offer || null,
-                    type
+
+            if (isInitialCall === true || isGroupCall) {
+
+                receiverSockets.forEach(id => {
+                    io.to(id).emit("incoming-call", {
+                        from,
+                        offer: null,
+                        type
+                    })
                 })
-            })
+
+            } else if (offer) {
+
+                // ✅ ONLY SIGNAL (NO NEW CALL)
+                receiverSockets.forEach(id => {
+                    io.to(id).emit("incoming-call", {
+                        from,
+                        offer,
+                        type
+                    })
+                })
+
+            }
         }
         if (isGroupCall || isInitialCall === false) return
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
+
         if (isInitialCall !== true) return
 
         const isInSameChat =
