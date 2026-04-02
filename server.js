@@ -1151,7 +1151,7 @@ io.on("connection", (socket) => {
 
                 // ✅ ONLY SIGNAL (NO NEW CALL)
                 receiverSockets.forEach(id => {
-                    io.to(id).emit("incoming-call", {
+                    io.to(id).emit("call-signal", {
                         from,
                         offer,
                         type
