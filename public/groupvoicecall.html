@@ -464,7 +464,17 @@
             window.location.href =
                 `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
         }
+        socket.on("user-left-call", ({ user }) => {
 
+            console.log("👤 User left:", user)
+
+            const userCard = document.getElementById("user-" + user)
+
+            if (userCard) {
+                userCard.remove()
+            }
+
+        })
         function goBack() {
             endCall()
         }
