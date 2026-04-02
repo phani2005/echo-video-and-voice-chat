@@ -146,7 +146,7 @@
                 localStorage.setItem("chatName", nameParam)
             }
         }
-        
+
         let callTimeout
         const ringtone = document.getElementById("ringtone")
 
@@ -165,9 +165,9 @@
         let callConnected = false
         const isFromNotification = params.get("from")
 
-if (isFromNotification) {
-    localStorage.setItem("callType", "receiver")   // 🔥 FORCE FIX
-}
+        if (isFromNotification) {
+            localStorage.setItem("callType", "receiver")   // 🔥 FORCE FIX
+        }
         const callType = localStorage.getItem("callType")
 
         /* ---------------- STREAM ---------------- */
@@ -275,6 +275,10 @@ if (isFromNotification) {
         /* ---------------- PEER ---------------- */
 
         function createPeer(user, initiator, signal = null) {
+            if (initiator && callType !== "caller") {
+                console.log("❌ Receiver cannot initiate")
+                return
+            }
 
             if (peers[user]) return
 
@@ -490,6 +494,7 @@ if (isFromNotification) {
         socket.on("call-signal", async ({ from, offer, type }) => {
 
             console.log("📡 SIGNAL RECEIVED (no notification):", from)
+            if (callType !== "receiver") return
 
             if (type !== "voice") return
 
