@@ -283,7 +283,8 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (!callConnected && initiator) {
+                if (!callConnected && initiator && !peers[user]._sentOffer) {
+                    peers[user]._sentOffer = true
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
