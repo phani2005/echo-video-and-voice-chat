@@ -283,7 +283,7 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator) {
+                if (!callConnected && initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
