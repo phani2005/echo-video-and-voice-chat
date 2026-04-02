@@ -194,7 +194,22 @@
                     isGroup: true
                 })
                 alert("No one joined the call")
-                endCall()
+
+                stopRinging()
+                clearTimeout(callTimeout)
+
+                // ❌ DO NOT CALL endCall()
+
+                Object.values(peers).forEach(p => p.destroy())
+                peers = {}
+
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop())
+                    localStream = null
+                }
+
+                window.location.href =
+                    `/chat.html?from=${groupId}&isGroup=true&openChat=true`
             }, 60000)
 
             await getCameras()
