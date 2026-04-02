@@ -1320,6 +1320,9 @@ io.on("connection", (socket) => {
                 console.log("🛑 Call fully ended")
 
                 const group = await Group.findById(to)
+                const groupName = group?.name || "Group"
+
+                const callType = type === "video" ? "Video" : "Voice"
 
                 for (let member of group.members) {
 
@@ -1330,7 +1333,7 @@ io.on("connection", (socket) => {
                             s.sub,
                             JSON.stringify({
                                 title: group.name,
-                                body: "❌ Group call ended",
+                                body: `❌ Missed ${callType} call from ${displayName}`,
                                 isGroup: true,
                                 status: "ended",
                                 tag: to
