@@ -1292,42 +1292,58 @@ io.on("connection", (socket) => {
 
             const call = activeCalls[to]
 
-            // 🔥 ONLY IF CALLER ENDS CALL
-            if (call && call.users[0] === from) {
+            if (!call) return
+
+            // 🔥 REMOVE USER FROM CALL
+            call.users = call.users.filter(u => u !== from)
+            socket.leave(to)
+
+            console.log("👤 User left call:", from)
+
+            // 🔥 NOTIFY OTHERS THAT USER LEFT (OPTIONAL UI)
+            call.users.forEach(user => {
+                const sockets = onlineUsers[user]
+                if (sockets) {
+                    sockets.forEach(id => {
+                        io.to(id).emit("user-left-call", {
+                            user: from
+                        })
+                    })
+                }
+            })
+
+            // =============================
+            // 🔥 IF NO USERS LEFT → END CALL
+            // =============================
+            if (call.users.length === 0) {
+
+                console.log("🛑 Call fully ended")
+
+                const group = await Group.findById(to)
 
                 for (let member of group.members) {
 
-                    if (member === from) continue
+                    const subs = await Subscription.find({ email: member })
 
-                    // ❌ IF USER WAS NOT IN CALL → MISSED
-                    if (!call.users.includes(member)) {
-
-                        const subs = await Subscription.find({ email: member })
-
-                        const displayName = await getDisplayName(member, from)
-
-                        subs.forEach(s => {
-                            webpush.sendNotification(
-                                s.sub,
-                                JSON.stringify({
-                                    title: group.name,
-                                    body: `❌ Missed ${type === "video" ? "video" : "voice"} call from ${displayName}`,
-                                    from: displayName,
-                                    type,
-                                    isGroup: true,
-                                    status: "ended",
-                                    tag: to
-                                })
-                            ).catch(err => console.log("Push error:", err.message))
-                        })
-                    }
+                    subs.forEach(s => {
+                        webpush.sendNotification(
+                            s.sub,
+                            JSON.stringify({
+                                title: group.name,
+                                body: "❌ Group call ended",
+                                isGroup: true,
+                                status: "ended",
+                                tag: to
+                            })
+                        )
+                    })
                 }
+
+                // 🔥 NOW END FOR ALL
+                io.to(to).emit("call-ended")
+
+                delete activeCalls[to]
             }
-
-            // 🔥 END CALL FOR ALL USERS
-            io.to(to).emit("call-ended")
-
-            delete activeCalls[to]
 
         } else {
 
