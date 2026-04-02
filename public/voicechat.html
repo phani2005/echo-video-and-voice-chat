@@ -380,14 +380,13 @@
 
             await initLocalStream()
 
-            // 🔥 EXACT GROUP LOGIC
-            // createPeer(user, true)
-
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (callType === "caller") {
+            // 🔥 IMPORTANT FIX
+            if (!callConnected) {
                 createPeer(user, true)
+            }
+
+            if (!peers[user]) {
+                createPeer(user, false)
             }
         })
 
