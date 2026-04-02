@@ -1283,7 +1283,13 @@ io.on("connection", (socket) => {
     //end-call
     socket.on("end-call", async ({ to, from, type, duration }) => {
 
-        const group = await Group.findById(to)
+        let group = null
+
+        if (mongoose.Types.ObjectId.isValid(to)) {
+            group = await Group.findById(to)
+        } else {
+            console.log("❌ Not a groupId, skipping group logic:", to)
+        }
 
         // =========================
         // 🔥 GROUP CALL LOGIC
