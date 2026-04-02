@@ -1304,7 +1304,7 @@ io.on("connection", (socket) => {
         })
 
     })
-    socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
+    socket.on("call-timeout", async ({ from, to, type }) => {
 
         await Call.create({
             caller: from,
@@ -1314,74 +1314,6 @@ io.on("connection", (socket) => {
             missed: true
         })
 
-        // 🔥 GET NAME PROPERLY
-        const senderName = from
-
-        // =========================
-        // 🔥 GROUP CALL FIX
-        // =========================
-        if (isGroup) {
-
-            const group = await Group.findById(to)
-            if (!group) return
-
-            for (let member of group.members) {
-
-                if (member === from) continue
-
-                const subs = await Subscription.find({ email: member })
-
-                const displayName = await getDisplayName(member, from)
-
-                subs.forEach(s => {
-                    webpush.sendNotification(
-                        s.sub,
-                        JSON.stringify({
-                            title: group.name,
-                            body: `❌ Missed ${type === "video" ? "video" : "voice"} call from ${displayName}`,
-                            from: displayName,
-                            type: type,
-                            isGroup: true,
-                            status: "ended",
-                            tag: to   // 🔥 GROUP ID AS TAG
-                        })
-                    ).catch(err => console.log("Push error:", err.message))
-                })
-            }
-
-            // 🔥 STOP CALL FOR ALL
-            io.to(to).emit("call-ended")
-
-        } else {
-
-            // =========================
-            // 🔥 NORMAL CALL (KEEP SAME)
-            // =========================
-            const subs = await Subscription.find({ email: to })
-            const displayName = await getDisplayName(to, from)
-
-            subs.forEach(s => {
-                webpush.sendNotification(
-                    s.sub,
-                    JSON.stringify({
-                        title: displayName,
-                        body: "Missed call",
-                        from: displayName,
-                        type,
-                        isGroup: false,
-                        status: "ended",
-                        tag: from
-                    })
-                ).catch(err => console.log("Push error:", err.message))
-            })
-
-            const receiverSockets = onlineUsers[to]
-            if (receiverSockets) {
-                receiverSockets.forEach(id => {
-                    io.to(id).emit("call-ended")
-                })
-            }
-        }
     })
     socket.on("missed-call", async ({ to, from, type }) => {
 
@@ -1507,7 +1439,7 @@ io.on("connection", (socket) => {
                 })
             }
             const userSubs = await Subscription.find({ email: member })
-            const groupName = group.name
+            const groupName=group.name
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
             const senderName = await getDisplayName(member, from)
