@@ -383,22 +383,20 @@
 
         socket.on("user-joined-call", async ({ user }) => {
 
-            if (user === loggedUser) return
+    if (user === loggedUser) return
 
-            console.log("👥 user joined:", user)
+    await initLocalStream()
 
-            await initLocalStream()
+    // ✅ ONLY CALLER CREATES OFFER
+    if (callType === "caller") {
+        createPeer(user, true)
+    }
 
-            // 🔥 IMPORTANT FIX
-            if (!callConnected) {
-                createPeer(user, true)
-            }
-
-            if (!peers[user]) {
-                createPeer(user, false)
-            }
-        })
-
+    // ✅ RECEIVER ONLY RESPONDS (NO DOUBLE PEER)
+    if (!peers[user] && callType !== "caller") {
+        createPeer(user, false)
+    }
+})
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
