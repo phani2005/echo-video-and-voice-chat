@@ -411,6 +411,14 @@
                 peers[from].signal(answer)
             }
         })
+        socket.on("call-signal", ({ from, offer, type }) => {
+
+    if (type !== "voice") return
+
+    console.log("📡 GROUP SIGNAL:", from)
+
+    createPeer(from, false, offer)
+})
 
         /* 🔥 END */
         socket.on("call-ended", () => {
