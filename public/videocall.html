@@ -218,7 +218,8 @@
                         to: user,
                         from: loggedUser,
                         offer: data,
-                        type: "video"
+                        type: "video",
+                        isInitialCall: false
                     })
                 } else {
                     socket.emit("answer-call", {
