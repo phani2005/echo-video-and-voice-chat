@@ -303,7 +303,7 @@
             await initLocalStream()
 
             // 🔥 SAME AS VOICE
-            // createPeer(user, true)
+            createPeer(user, true)
 
             if (!peers[user]) {
                 createPeer(user, false)
