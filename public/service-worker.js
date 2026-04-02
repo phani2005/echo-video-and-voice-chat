@@ -12,16 +12,20 @@ self.addEventListener("push", function (event) {
 
     if (data.status === "ended") {
 
-        const caller = data.from || "Unknown"
+    const caller = data.from || "Unknown"
+    const callType = data.type === "video" ? "Video" : "Voice"
 
-        if (data.isGroup) {
-            title = "❌ Group Call Ended"
-            body = `${caller} started a call (missed)`
-        } else {
-            title = "❌ Missed " + (data.type === "video" ? "Video Call" : "Voice Call")
-            body = `From: ${caller}`
-        }
+    if (data.isGroup) {
+        // ✅ USE GROUP NAME FROM SERVER
+        title = `❌ Missed ${callType} Call`
+
+        // ✅ SHOW GROUP NAME + SENDER
+        body = `${caller} in ${data.title || "Group"}`
+    } else {
+        title = `❌ Missed ${callType} Call`
+        body = `From: ${caller}`
     }
+}
 
     const options = {
         body: body,
