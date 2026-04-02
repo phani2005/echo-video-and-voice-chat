@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- New Code -->
 <html>
 
 <head>
@@ -146,7 +145,7 @@
                 localStorage.setItem("chatName", nameParam)
             }
         }
-
+        const callType = localStorage.getItem("callType")
         let callTimeout
         const ringtone = document.getElementById("ringtone")
 
@@ -163,12 +162,6 @@
         let timerInterval
         let incomingCaller = null
         let callConnected = false
-        const isFromNotification = params.get("from")
-
-        if (isFromNotification) {
-            localStorage.setItem("callType", "receiver")   // 🔥 FORCE FIX
-        }
-        const callType = localStorage.getItem("callType")
 
         /* ---------------- STREAM ---------------- */
 
@@ -275,10 +268,6 @@
         /* ---------------- PEER ---------------- */
 
         function createPeer(user, initiator, signal = null) {
-            if (initiator && callType !== "caller") {
-                console.log("❌ Receiver cannot initiate")
-                return
-            }
 
             if (peers[user]) return
 
@@ -294,23 +283,14 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                // ✅ ONLY CALLER SENDS OFFER (ONCE)
-                if (initiator && !peers[user]._sentOffer) {
-
-                    peers[user]._sentOffer = true
-
+                if (initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
-                        type: "voice",
-                        isInitialCall: false
+                        type: "voice"
                     })
-                }
-
-                // ✅ ONLY RECEIVER SENDS ANSWER
-                if (!initiator) {
-
+                } else {
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
@@ -351,30 +331,10 @@
                 socket.emit("call-timeout", {
                     from: loggedUser,
                     to: receiver,
-                    type: "voice",
-                    isGroup: false
+                    type: "voice"
                 })
-
                 alert("Call not answered")
-
-                // 🔥 DO NOT CALL endCall()
-
-                stopRinging()
-                clearTimeout(callTimeout)
-
-                Object.values(peers).forEach(p => p.destroy())
-                peers = {}
-
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop())
-                    localStream = null
-                }
-
-                clearInterval(timerInterval)
-
-                window.location.href =
-                    `/chat.html?from=${receiver}&openChat=true`
-
+                endCall()
             }, 60000)
 
             await initLocalStream()
@@ -396,21 +356,21 @@
 
             if (user === loggedUser) return
 
+            console.log("👥 user joined:", user)
+
             await initLocalStream()
 
-            // 🔥 CRITICAL FIX: prevent duplicate peer
-            if (peers[user]) {
-                console.log("⚠️ Peer already exists, skipping:", user)
-                return
-            }
+            // 🔥 EXACT GROUP LOGIC
+            // createPeer(user, true)
 
-            // ✅ ONLY caller sends offer
+            // if (!peers[user]) {
+            //     createPeer(user, false)
+            // }
             if (callType === "caller") {
                 createPeer(user, true)
             }
-
-            // ❌ RECEIVER SHOULD NOT CREATE HERE
         })
+
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
@@ -491,18 +451,6 @@
                 peers[from].signal(answer)
             }
         })
-        socket.on("call-signal", async ({ from, offer, type }) => {
-
-            console.log("📡 SIGNAL RECEIVED (no notification):", from)
-            if (callType !== "receiver") return
-
-            if (type !== "voice") return
-
-            await initLocalStream()
-
-            // ✅ DIRECTLY CONNECT — NO UI / NO RING
-            createPeer(from, false, offer)
-        })
 
         /* ---------------- END ---------------- */
 
@@ -561,26 +509,31 @@
                 type: "voice",
                 duration: seconds
             })
+            socket.emit("leave-chat", loggedUser)
 
             Object.values(peers).forEach(p => p.destroy())
             peers = {}
+            callConnected = false   // 🔥 ADD THIS
+            seconds = 0
 
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
-                localStream = null
             }
 
             clearInterval(timerInterval)
 
+            // window.location.href = "/chat.html"
+            // const receiver = localStorage.getItem("chatWith")
+            const isGroup = localStorage.getItem("isGroup") === "true"
             const name = localStorage.getItem("chatName") || ""
 
             window.location.href =
-                `/chat.html?from=${receiver}&isGroup=false&name=${name}&openChat=true`
+                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         }
 
         /* ---------------- START FLOW ---------------- */
 
-        if (callType === "caller" && !fromParam) {
+        if (callType === "caller") {
             startCall()
         }
 
@@ -589,9 +542,9 @@
                 await initLocalStream()
                 joinCallRoom()
                 console.log("📥 Receiver joined")
-                // socket.emit("request-offer", {
-                //     from: loggedUser
-                // })
+                socket.emit("request-offer", {
+                    from: loggedUser
+                })
             })()
         }
 
