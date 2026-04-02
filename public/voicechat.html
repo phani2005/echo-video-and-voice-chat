@@ -163,6 +163,11 @@
         let timerInterval
         let incomingCaller = null
         let callConnected = false
+        const isFromNotification = params.get("from")
+
+if (isFromNotification) {
+    localStorage.setItem("callType", "receiver")   // 🔥 FORCE FIX
+}
 
         /* ---------------- STREAM ---------------- */
 
@@ -569,7 +574,7 @@
 
         /* ---------------- START FLOW ---------------- */
 
-        if (callType === "caller") {
+        if (callType === "caller" && !fromParam) {
             startCall()
         }
 
