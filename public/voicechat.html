@@ -284,7 +284,7 @@
                 console.log("📡 SIGNAL:", data.type)
 
                 // ✅ ONLY CALLER SENDS OFFER (ONCE)
-                if (initiator && !callConnected && !peers[user]._sentOffer) {
+                if (initiator && !peers[user]._sentOffer) {
 
                     peers[user]._sentOffer = true
 
@@ -292,7 +292,8 @@
                         to: user,
                         from: loggedUser,
                         offer: data,
-                        type: "voice"
+                        type: "voice",
+                        isInitialCall: false
                     })
                 }
 
