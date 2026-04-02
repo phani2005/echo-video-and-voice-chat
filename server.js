@@ -1304,17 +1304,48 @@ io.on("connection", (socket) => {
         })
 
     })
-    socket.on("call-timeout", async ({ from, to, type }) => {
+    socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
 
-        await Call.create({
-            caller: from,
-            receiver: to,
-            type,
-            duration: 0,
-            missed: true
-        })
-
+    await Call.create({
+        caller: from,
+        receiver: to,
+        type,
+        duration: 0,
+        missed: true
     })
+
+    // 🔥 SEND PUSH NOTIFICATION
+    const subs = await Subscription.find({ email: to })
+
+    const senderName = await getDisplayName(to, from)
+
+    subs.forEach(s => {
+        webpush.sendNotification(
+            s.sub,
+            JSON.stringify({
+                title: senderName,
+                body: "Missed call",
+                from: senderName,
+                type,
+                isGroup: isGroup || false,
+                status: "ended",
+                tag: from   // 🔥 IMPORTANT
+            })
+        ).catch(err => console.log("Push error:", err.message))
+    })
+
+    // 🔥 ALSO STOP CALL VIA SOCKET (CRITICAL)
+    if (isGroup) {
+        io.to(to).emit("call-ended")
+    } else {
+        const receiverSockets = onlineUsers[to]
+        if (receiverSockets) {
+            receiverSockets.forEach(id => {
+                io.to(id).emit("call-ended")
+            })
+        }
+    }
+})
     socket.on("missed-call", async ({ to, from, type }) => {
 
         await Call.create({
