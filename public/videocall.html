@@ -265,8 +265,27 @@
                     type: "video",
                     isGroup: false
                 })
+
                 alert("Call not answered")
-                endCall()
+
+                // 🔥 DO NOT CALL endCall()
+
+                stopRinging()
+                clearTimeout(callTimeout)
+
+                Object.values(peers).forEach(p => p.destroy())
+                peers = {}
+
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop())
+                    localStream = null
+                }
+
+                clearInterval(timerInterval)
+
+                window.location.href =
+                    `/chat.html?from=${receiver}&openChat=true`
+
             }, 60000)
 
             await initLocalStream()
@@ -439,7 +458,7 @@
                 localStream.getTracks().forEach(t => t.stop())
                 localStream = null
             }
-            
+
 
             clearInterval(timerInterval)
 
