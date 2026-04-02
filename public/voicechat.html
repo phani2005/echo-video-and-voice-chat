@@ -567,9 +567,9 @@
                 await initLocalStream()
                 joinCallRoom()
                 console.log("📥 Receiver joined")
-                socket.emit("request-offer", {
-                    from: loggedUser
-                })
+                // socket.emit("request-offer", {
+                //     from: loggedUser
+                // })
             })()
         }
 
