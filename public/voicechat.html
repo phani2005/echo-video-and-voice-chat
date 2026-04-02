@@ -388,15 +388,18 @@
 
     await initLocalStream()
 
-    // ✅ ONLY CALLER CREATES OFFER
+    // 🔥 CRITICAL FIX: prevent duplicate peer
+    if (peers[user]) {
+        console.log("⚠️ Peer already exists, skipping:", user)
+        return
+    }
+
+    // ✅ ONLY caller sends offer
     if (callType === "caller") {
         createPeer(user, true)
     }
 
-    // ✅ RECEIVER ONLY RESPONDS (NO DOUBLE PEER)
-    if (!peers[user] && callType !== "caller") {
-        createPeer(user, false)
-    }
+    // ❌ RECEIVER SHOULD NOT CREATE HERE
 })
         /* ---------------- INCOMING CALL ---------------- */
 
