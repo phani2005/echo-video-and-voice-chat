@@ -321,14 +321,15 @@
 
             await initLocalStream()
 
-            // 🔥 SAME AS VOICE
-            createPeer(user, true)
+            // 🔥 IMPORTANT FIX
+            if (!callConnected) {
+                createPeer(user, true)
+            }
 
             if (!peers[user]) {
                 createPeer(user, false)
             }
         })
-
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
