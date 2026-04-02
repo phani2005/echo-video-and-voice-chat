@@ -1306,46 +1306,83 @@ io.on("connection", (socket) => {
     })
     socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
 
-    await Call.create({
-        caller: from,
-        receiver: to,
-        type,
-        duration: 0,
-        missed: true
-    })
+        await Call.create({
+            caller: from,
+            receiver: to,
+            type,
+            duration: 0,
+            missed: true
+        })
 
-    // 🔥 SEND PUSH NOTIFICATION
-    const subs = await Subscription.find({ email: to })
+        // 🔥 GET NAME PROPERLY
+        const senderName = from
 
-    const senderName = await getDisplayName(to, from)
+        // =========================
+        // 🔥 GROUP CALL FIX
+        // =========================
+        if (isGroup) {
 
-    subs.forEach(s => {
-        webpush.sendNotification(
-            s.sub,
-            JSON.stringify({
-                title: senderName,
-                body: "Missed call",
-                from: senderName,
-                type,
-                isGroup: isGroup || false,
-                status: "ended",
-                tag: from   // 🔥 IMPORTANT
+            const group = await Group.findById(to)
+            if (!group) return
+
+            for (let member of group.members) {
+
+                if (member === from) continue
+
+                const subs = await Subscription.find({ email: member })
+
+                const displayName = await getDisplayName(member, from)
+
+                subs.forEach(s => {
+                    webpush.sendNotification(
+                        s.sub,
+                        JSON.stringify({
+                            title: group.name,
+                            body: `❌ Missed ${type === "video" ? "video" : "voice"} call from ${displayName}`,
+                            from: displayName,
+                            type: type,
+                            isGroup: true,
+                            status: "ended",
+                            tag: to   // 🔥 GROUP ID AS TAG
+                        })
+                    ).catch(err => console.log("Push error:", err.message))
+                })
+            }
+
+            // 🔥 STOP CALL FOR ALL
+            io.to(to).emit("call-ended")
+
+        } else {
+
+            // =========================
+            // 🔥 NORMAL CALL (KEEP SAME)
+            // =========================
+            const subs = await Subscription.find({ email: to })
+            const displayName = await getDisplayName(to, from)
+
+            subs.forEach(s => {
+                webpush.sendNotification(
+                    s.sub,
+                    JSON.stringify({
+                        title: displayName,
+                        body: "Missed call",
+                        from: displayName,
+                        type,
+                        isGroup: false,
+                        status: "ended",
+                        tag: from
+                    })
+                ).catch(err => console.log("Push error:", err.message))
             })
-        ).catch(err => console.log("Push error:", err.message))
-    })
 
-    // 🔥 ALSO STOP CALL VIA SOCKET (CRITICAL)
-    if (isGroup) {
-        io.to(to).emit("call-ended")
-    } else {
-        const receiverSockets = onlineUsers[to]
-        if (receiverSockets) {
-            receiverSockets.forEach(id => {
-                io.to(id).emit("call-ended")
-            })
+            const receiverSockets = onlineUsers[to]
+            if (receiverSockets) {
+                receiverSockets.forEach(id => {
+                    io.to(id).emit("call-ended")
+                })
+            }
         }
-    }
-})
+    })
     socket.on("missed-call", async ({ to, from, type }) => {
 
         await Call.create({
@@ -1470,7 +1507,7 @@ io.on("connection", (socket) => {
                 })
             }
             const userSubs = await Subscription.find({ email: member })
-            const groupName=group.name
+            const groupName = group.name
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
             const senderName = await getDisplayName(member, from)
