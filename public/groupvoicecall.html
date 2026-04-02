@@ -160,7 +160,6 @@
         const ringtone = document.getElementById("ringtone")
         let callTimeout
         let isConnected = false
-        let callConnected = false
         const VAPID_PUBLIC_KEY = "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM"
 
         socket.emit("register-user", loggedUser)
@@ -178,7 +177,6 @@
             }, 1000)
         }
         function startRinging() {
-            if (callConnected) return
             ringtone.currentTime = 0
             ringtone.play().catch(() => { })
         }
@@ -218,29 +216,8 @@
             startRinging()
 
             callTimeout = setTimeout(() => {
-                socket.emit("call-timeout", {
-                    from: loggedUser,
-                    to: groupId,
-                    type: "voice",   // or "video"
-                    isGroup: true
-                })
                 alert("No one joined the call")
-
-                stopRinging()
-                clearTimeout(callTimeout)
-
-                // ❌ DO NOT CALL endCall()
-
-                Object.values(peers).forEach(p => p.destroy())
-                peers = {}
-
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop())
-                    localStream = null
-                }
-
-                window.location.href =
-                    `/chat.html?from=${groupId}&isGroup=true&openChat=true`
+                endCall()
             }, 60000)
 
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -329,8 +306,8 @@
             })
 
             peer.on("stream", stream => {
-                if (!callConnected) {
-                    callConnected = true
+                if (!isConnected) {
+                    isConnected = true
                     stopRinging()
                     clearTimeout(callTimeout)
                 }
@@ -411,38 +388,18 @@
                 peers[from].signal(answer)
             }
         })
-        socket.on("call-signal", ({ from, offer, type }) => {
-
-    if (type !== "voice") return
-
-    console.log("📡 GROUP SIGNAL:", from)
-
-    createPeer(from, false, offer)
-})
 
         /* 🔥 END */
         socket.on("call-ended", () => {
 
-            stopRinging()
-            clearTimeout(callTimeout)
-
-            Object.values(peers).forEach(p => p.destroy())
-            peers = {}
-
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop())
-                localStream = null
-            }
-
-            clearInterval(timerInterval)
-
             alert("Call ended")
-
+            // window.location.href = "/chat.html"
             const name = localStorage.getItem("chatName") || "Group"
 
             window.location.href =
                 `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
         })
+
         function toggleMute() {
 
             if (!localStream) return
@@ -459,9 +416,6 @@
 
         function endCall() {
 
-            stopRinging()
-            clearTimeout(callTimeout)
-
             socket.emit("end-call", {
                 to: groupId,
                 from: loggedUser,
@@ -470,34 +424,20 @@
             })
 
             Object.values(peers).forEach(p => p.destroy())
-            peers = {}
-
-            callConnected = false
-            seconds = 0
 
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
-                localStream = null
             }
 
             clearInterval(timerInterval)
 
+            // window.location.href = "/chat.html"
             const name = localStorage.getItem("chatName") || "Group"
 
             window.location.href =
                 `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
         }
-        socket.on("user-left-call", ({ user }) => {
 
-            console.log("👤 User left:", user)
-
-            const userCard = document.getElementById("user-" + user)
-
-            if (userCard) {
-                userCard.remove()
-            }
-
-        })
         function goBack() {
             endCall()
         }
