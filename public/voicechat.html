@@ -283,15 +283,22 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (!callConnected && initiator && !peers[user]._sentOffer) {
+                // ✅ ONLY CALLER SENDS OFFER (ONCE)
+                if (initiator && !callConnected && !peers[user]._sentOffer) {
+
                     peers[user]._sentOffer = true
+
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
                         type: "voice"
                     })
-                } else {
+                }
+
+                // ✅ ONLY RECEIVER SENDS ANSWER
+                if (!initiator) {
+
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
