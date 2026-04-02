@@ -1283,26 +1283,76 @@ io.on("connection", (socket) => {
     //end-call
     socket.on("end-call", async ({ to, from, type, duration }) => {
 
-        const receiverSocket = onlineUsers[to]
+        const group = await Group.findById(to)
 
-        if (receiverSocket) {
-            receiverSocket.forEach(id => {
-                io.to(id).emit("call-ended")
+        // =========================
+        // 🔥 GROUP CALL LOGIC
+        // =========================
+        if (group) {
+
+            const call = activeCalls[to]
+
+            // 🔥 ONLY IF CALLER ENDS CALL
+            if (call && call.users[0] === from) {
+
+                for (let member of group.members) {
+
+                    if (member === from) continue
+
+                    // ❌ IF USER WAS NOT IN CALL → MISSED
+                    if (!call.users.includes(member)) {
+
+                        const subs = await Subscription.find({ email: member })
+
+                        const displayName = await getDisplayName(member, from)
+
+                        subs.forEach(s => {
+                            webpush.sendNotification(
+                                s.sub,
+                                JSON.stringify({
+                                    title: group.name,
+                                    body: `❌ Missed ${type === "video" ? "video" : "voice"} call from ${displayName}`,
+                                    from: displayName,
+                                    type,
+                                    isGroup: true,
+                                    status: "ended",
+                                    tag: to
+                                })
+                            ).catch(err => console.log("Push error:", err.message))
+                        })
+                    }
+                }
+            }
+
+            // 🔥 END CALL FOR ALL USERS
+            io.to(to).emit("call-ended")
+
+            delete activeCalls[to]
+
+        } else {
+
+            // =========================
+            // 🔥 NORMAL CALL (NO CHANGE)
+            // =========================
+            const receiverSocket = onlineUsers[to]
+
+            if (receiverSocket) {
+                receiverSocket.forEach(id => {
+                    io.to(id).emit("call-ended")
+                })
+            }
+
+            const roomId = [from, to].sort().join("-")
+            delete activeCalls[roomId]
+
+            await Call.create({
+                caller: from,
+                receiver: to,
+                type,
+                duration,
+                timestamp: new Date()
             })
         }
-
-        const roomId = [from, to].sort().join("-")
-        delete activeCalls[roomId]
-
-
-        await Call.create({
-            caller: from,
-            receiver: to,
-            type: type,
-            duration: duration,
-            timestamp: new Date()
-        })
-
     })
     socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
 
