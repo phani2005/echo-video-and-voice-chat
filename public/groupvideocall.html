@@ -177,11 +177,13 @@
         const ringtone = document.getElementById("ringtone")
         let callTimeout
         let isConnected = false
+        let callConnected = false
 
         socket.emit("register-user", loggedUser)
 
         /* START CALL */
         async function startCall() {
+            if (callConnected) return
             startRinging() // 🔥 START RING
 
             callTimeout = setTimeout(() => {
@@ -211,16 +213,20 @@
 
             groupMembers = data.members
 
-            socket.emit("group-call", {
-                groupId,
-                from: loggedUser,
-                type: "video"
-            })
-
+            // ✅ JOIN FIRST
             socket.emit("join-group-call", {
                 groupId,
                 user: loggedUser
             })
+
+            // ✅ ONLY CALL IF CALLER
+            if (localStorage.getItem("callType") !== "receiver") {
+                socket.emit("group-call", {
+                    groupId,
+                    from: loggedUser,
+                    type: "video"
+                })
+            }
         }
         function startRinging() {
             ringtone.currentTime = 0
@@ -297,8 +303,8 @@
             })
 
             peer.on("stream", stream => {
-                if (!isConnected) {
-                    isConnected = true
+                if (!callConnected) {
+                    callConnected = true
                     stopRinging()
                     clearTimeout(callTimeout)
                 }
@@ -313,8 +319,19 @@
 
         /* EVENTS */
         socket.on("user-joined-call", ({ user }) => {
+
             if (user === loggedUser) return
+
+            console.log("👥 user joined:", user)
+
+            // 🔥 EXISTING USERS CALL NEW USER
             createPeer(user, true)
+
+            // 🔥 NEW USER ALSO CONNECT BACK
+            if (!peers[user]) {
+                createPeer(user, false)
+            }
+
         })
 
         socket.on("incoming-call", ({ from, offer, type }) => {
@@ -327,12 +344,35 @@
         })
 
         socket.on("call-ended", () => {
+
+            stopRinging()
+            clearTimeout(callTimeout)
+
+            Object.values(peers).forEach(p => p.destroy())
+            peers = {}
+
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop())
+                localStream = null
+            }
+
             alert("Call ended")
-            // window.location.href = "/chat.html"
+
             const name = localStorage.getItem("chatName") || "Group"
 
             window.location.href =
                 `/chat.html?from=${groupId}&isGroup=true&name=${name}&openChat=true`
+        })
+        socket.on("user-left-call", ({ user }) => {
+
+            console.log("👤 User left:", user)
+
+            const card = document.getElementById("card-" + user)
+
+            if (card) {
+                card.remove()
+            }
+
         })
 
         /* CONTROLS */
