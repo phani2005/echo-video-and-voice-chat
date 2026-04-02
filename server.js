@@ -1125,45 +1125,17 @@ io.on("connection", (socket) => {
         const receiverSockets = onlineUsers[to]
         console.log("call-user receiversockets: ", receiverSockets)
 
-        // if (receiverSockets) {
-        //     receiverSockets.forEach(id => {
-        //         io.to(id).emit("incoming-call", {
-        //             from,
-        //             offer: offer || null,
-        //             type
-        //         })
-        //     })
-        // }
-        // ✅ ONLY SEND incoming-call FOR INITIAL CALL OR GROUP
         if (receiverSockets) {
-
-            if (isInitialCall === true || isGroupCall) {
-
-                receiverSockets.forEach(id => {
-                    io.to(id).emit("incoming-call", {
-                        from,
-                        offer: null,
-                        type
-                    })
+            receiverSockets.forEach(id => {
+                io.to(id).emit("incoming-call", {
+                    from,
+                    offer: offer || null,
+                    type
                 })
-
-            } else if (offer) {
-
-                // ✅ ONLY SIGNAL (NO NEW CALL)
-                receiverSockets.forEach(id => {
-                    io.to(id).emit("incoming-call", {
-                        from,
-                        offer,
-                        type
-                    })
-                })
-
-            }
+            })
         }
         if (isGroupCall || isInitialCall === false) return
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
-
-        if (isInitialCall !== true) return
 
         const isInSameChat =
             activeChats[to] &&
@@ -1311,102 +1283,26 @@ io.on("connection", (socket) => {
     //end-call
     socket.on("end-call", async ({ to, from, type, duration }) => {
 
-        let group = null
+        const receiverSocket = onlineUsers[to]
 
-        if (mongoose.Types.ObjectId.isValid(to)) {
-            group = await Group.findById(to)
-        } else {
-            console.log("❌ Not a groupId, skipping group logic:", to)
-        }
-
-        // =========================
-        // 🔥 GROUP CALL LOGIC
-        // =========================
-        if (group) {
-
-            const call = activeCalls[to]
-
-            if (!call) return
-
-            // 🔥 REMOVE USER FROM CALL
-            call.users = call.users.filter(u => u !== from)
-            socket.leave(to)
-
-            console.log("👤 User left call:", from)
-
-            // 🔥 NOTIFY OTHERS THAT USER LEFT (OPTIONAL UI)
-            call.users.forEach(user => {
-                const sockets = onlineUsers[user]
-                if (sockets) {
-                    sockets.forEach(id => {
-                        io.to(id).emit("user-left-call", {
-                            user: from
-                        })
-                    })
-                }
-            })
-
-            // =============================
-            // 🔥 IF NO USERS LEFT → END CALL
-            // =============================
-            if (call.users.length === 0) {
-
-                console.log("🛑 Call fully ended")
-
-                const group = await Group.findById(to)
-                const groupName = group?.name || "Group"
-
-                const callType = type === "video" ? "Video" : "Voice"
-
-                for (let member of group.members) {
-
-                    const subs = await Subscription.find({ email: member })
-                    const senderName = await getDisplayName(member, from)
-
-                    subs.forEach(s => {
-                        webpush.sendNotification(
-                            s.sub,
-                            JSON.stringify({
-                                title: group.name,
-                                body: `❌ Missed ${callType} call from ${senderName}`,
-                                isGroup: true,
-                                status: "ended",
-                                tag: to
-                            })
-                        )
-                    })
-                }
-
-                // 🔥 NOW END FOR ALL
-                io.to(to).emit("call-ended")
-
-                delete activeCalls[to]
-            }
-
-        } else {
-
-            // =========================
-            // 🔥 NORMAL CALL (NO CHANGE)
-            // =========================
-            const receiverSocket = onlineUsers[to]
-
-            if (receiverSocket) {
-                receiverSocket.forEach(id => {
-                    io.to(id).emit("call-ended")
-                })
-            }
-
-            const roomId = [from, to].sort().join("-")
-            delete activeCalls[roomId]
-
-            await Call.create({
-                caller: from,
-                receiver: to,
-                type,
-                duration,
-                timestamp: new Date()
+        if (receiverSocket) {
+            receiverSocket.forEach(id => {
+                io.to(id).emit("call-ended")
             })
         }
+
+        const roomId = [from, to].sort().join("-")
+        delete activeCalls[roomId]
+
+
+        await Call.create({
+            caller: from,
+            receiver: to,
+            type: type,
+            duration: duration,
+            timestamp: new Date()
+        })
+
     })
     socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
 
