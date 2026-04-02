@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- New Code -->
 <html>
 
 <head>
@@ -283,14 +284,22 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator) {
+                // ✅ ONLY CALLER SENDS OFFER (ONCE)
+                if (initiator && !peers[user]._sentOffer) {
+
+                    peers[user]._sentOffer = true
+
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
                         type: "voice"
                     })
-                } else {
+                }
+
+                // ✅ ONLY RECEIVER SENDS ANSWER
+                if (!initiator) {
+
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
@@ -357,7 +366,6 @@
 
             }, 60000)
 
-
             await initLocalStream()
 
             joinCallRoom()
@@ -381,14 +389,13 @@
 
             await initLocalStream()
 
-            // 🔥 EXACT GROUP LOGIC
-            // createPeer(user, true)
-
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (callType === "caller") {
+            // 🔥 IMPORTANT FIX
+            if (!callConnected) {
                 createPeer(user, true)
+            }
+
+            if (!peers[user]) {
+                createPeer(user, false)
             }
         })
 
@@ -530,26 +537,21 @@
                 type: "voice",
                 duration: seconds
             })
-            socket.emit("leave-chat", loggedUser)
 
             Object.values(peers).forEach(p => p.destroy())
             peers = {}
-            callConnected = false   // 🔥 ADD THIS
-            seconds = 0
 
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
+                localStream = null
             }
 
             clearInterval(timerInterval)
 
-            // window.location.href = "/chat.html"
-            // const receiver = localStorage.getItem("chatWith")
-            const isGroup = localStorage.getItem("isGroup") === "true"
             const name = localStorage.getItem("chatName") || ""
 
             window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+                `/chat.html?from=${receiver}&isGroup=false&name=${name}&openChat=true`
         }
 
         /* ---------------- START FLOW ---------------- */
