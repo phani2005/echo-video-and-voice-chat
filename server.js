@@ -1212,41 +1212,48 @@ io.on("connection", (socket) => {
     })
     socket.on("voice-call-start", async ({ to, from, type }) => {
 
-    console.log("📞 voice-call-start:", from, "→", to)
+        console.log("📞 voice-call-start:", from, "→", to)
 
-    const roomId = [from, to].sort().join("-")
+        // 🔥 CREATE ROOM LIKE GROUP CALL
+        const roomId = [from, to].sort().join("-")
 
-    // 🔥 IF CALL ALREADY EXISTS → STOP NOTIFICATION
-    if (activeCalls[roomId] && activeCalls[roomId].users.length > 0) {
-        console.log("⚠️ Call already active → skip notification")
-        return
-    }
+        activeCalls[roomId] = {
+            users: [from] // 👈 VERY IMPORTANT
+        }
 
-    // ✅ CREATE CALL
-    activeCalls[roomId] = {
-        users: [from]
-    }
+        const receiverSockets = onlineUsers[to]
 
-    // 🔔 SEND NOTIFICATION ONLY ONCE
-    const subs = await Subscription.find({ email: to })
-    const senderName = await getDisplayName(to, from)
+        // if (receiverSockets) {
+        //     receiverSockets.forEach(id => {
+        //         io.to(id).emit("incoming-call", {
+        //             from,
+        //             offer: null,
+        //             type
+        //         })
+        //     })
+        // }
 
-    subs.forEach(s => {
-        webpush.sendNotification(
-            s.sub,
-            JSON.stringify({
-                title: "Incoming Call",
-                body: `📞 Voice call from ${senderName}`,
-                url: "/voicechat.html",
-                type: "voice",
-                from: from,
-                isGroup: false
+        // 🔔 push notification
+        const subs = await Subscription.find({ email: to })
+        const senderName = await getDisplayName(to, from)
+
+        subs.forEach(s => {
+            webpush.sendNotification(
+                s.sub,
+                JSON.stringify({
+                    title: "Incoming Call",
+                    body: `📞 Voice call from ${senderName}`,
+                    url: "/voicechat.html",
+                    type: "voice",
+                    from: from,
+                    isGroup: false
+                })
+            ).catch(err => {
+                console.log("❌ Push error:", err.message)
             })
-        ).catch(err => {
-            console.log("❌ Push error:", err.message)
         })
     })
-})
+
     // ICE candidate exchange
     socket.on("ice-candidate", ({ to, candidate }) => {
         const receiverSocket = onlineUsers[to]
