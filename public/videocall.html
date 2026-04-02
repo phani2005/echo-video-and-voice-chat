@@ -133,7 +133,7 @@
 
         const loggedUser = localStorage.getItem("loggedUser")
         const receiver = localStorage.getItem("chatWith")
-        const callType = localStorage.getItem("callType")
+        
 
         socket.emit("register-user", loggedUser)
 
@@ -149,6 +149,15 @@
         let videoDevices = []
         let currentCameraIndex = 0
         let callConnected = false
+        const params = new URLSearchParams(window.location.search)
+const fromParam = params.get("from")
+
+if (fromParam) {
+    localStorage.setItem("callType", "receiver")   // 🔥 CRITICAL
+}
+
+// ✅ NOW read
+const callType = localStorage.getItem("callType")
 
         /* ---------------- STREAM ---------------- */
 
@@ -200,6 +209,10 @@
         /* ---------------- PEER ---------------- */
 
         function createPeer(user, initiator, signal = null) {
+            if (initiator && callType !== "caller") {
+        console.log("❌ Receiver cannot initiate video")
+        return
+    }
 
             if (peers[user]) return
 
@@ -320,21 +333,30 @@
 
         socket.on("user-joined-call", async ({ user }) => {
 
-            if (user === loggedUser) return
+    if (user === loggedUser) return
 
-            console.log("👥 user joined:", user)
+    console.log("👥 user joined:", user)
 
-            await initLocalStream()
+    await initLocalStream()
 
-            // 🔥 IMPORTANT FIX
-            if (!callConnected) {
-                createPeer(user, true)
-            }
+    if (peers[user]) return
 
-            if (!peers[user]) {
-                createPeer(user, false)
-            }
-        })
+    // ✅ ONLY CALLER CREATES OFFER
+    if (callType === "caller") {
+        createPeer(user, true)
+    }
+})
+        socket.on("call-signal", async ({ from, offer, type }) => {
+
+    console.log("📡 VIDEO SIGNAL RECEIVED:", from)
+
+    if (callType !== "receiver") return
+    if (type !== "video") return
+
+    await initLocalStream()
+
+    createPeer(from, false, offer)
+})
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
