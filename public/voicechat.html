@@ -283,7 +283,7 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator) {
+                if (!callConnected && initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
@@ -331,10 +331,30 @@
                 socket.emit("call-timeout", {
                     from: loggedUser,
                     to: receiver,
-                    type: "voice"
+                    type: "voice",
+                    isGroup: false
                 })
+
                 alert("Call not answered")
-                endCall()
+
+                // 🔥 DO NOT CALL endCall()
+
+                stopRinging()
+                clearTimeout(callTimeout)
+
+                Object.values(peers).forEach(p => p.destroy())
+                peers = {}
+
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop())
+                    localStream = null
+                }
+
+                clearInterval(timerInterval)
+
+                window.location.href =
+                    `/chat.html?from=${receiver}&openChat=true`
+
             }, 60000)
 
             await initLocalStream()
@@ -360,14 +380,13 @@
 
             await initLocalStream()
 
-            // 🔥 EXACT GROUP LOGIC
-            // createPeer(user, true)
-
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (callType === "caller") {
+            // 🔥 IMPORTANT FIX
+            if (!callConnected) {
                 createPeer(user, true)
+            }
+
+            if (!peers[user]) {
+                createPeer(user, false)
             }
         })
 
@@ -509,26 +528,21 @@
                 type: "voice",
                 duration: seconds
             })
-            socket.emit("leave-chat", loggedUser)
 
             Object.values(peers).forEach(p => p.destroy())
             peers = {}
-            callConnected = false   // 🔥 ADD THIS
-            seconds = 0
 
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
+                localStream = null
             }
 
             clearInterval(timerInterval)
 
-            // window.location.href = "/chat.html"
-            // const receiver = localStorage.getItem("chatWith")
-            const isGroup = localStorage.getItem("isGroup") === "true"
             const name = localStorage.getItem("chatName") || ""
 
             window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+                `/chat.html?from=${receiver}&isGroup=false&name=${name}&openChat=true`
         }
 
         /* ---------------- START FLOW ---------------- */
