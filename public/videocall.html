@@ -218,8 +218,7 @@
                         to: user,
                         from: loggedUser,
                         offer: data,
-                        type: "video",
-                        isInitialCall: false
+                        type: "video"
                     })
                 } else {
                     socket.emit("answer-call", {
@@ -269,8 +268,7 @@
             socket.emit("call-user", {
                 to: receiver,
                 from: loggedUser,
-                type: "video",
-                isInitialCall: false
+                type: "video"
             })
         }
         async function getCameras() {
