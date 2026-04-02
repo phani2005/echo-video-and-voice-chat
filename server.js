@@ -1327,13 +1327,14 @@ io.on("connection", (socket) => {
                 for (let member of group.members) {
 
                     const subs = await Subscription.find({ email: member })
+                    const senderName = await getDisplayName(member, from)
 
                     subs.forEach(s => {
                         webpush.sendNotification(
                             s.sub,
                             JSON.stringify({
                                 title: group.name,
-                                body: `❌ Missed ${callType} call from ${displayName}`,
+                                body: `❌ Missed ${callType} call from ${senderName}`,
                                 isGroup: true,
                                 status: "ended",
                                 tag: to
