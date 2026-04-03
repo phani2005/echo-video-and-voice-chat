@@ -132,7 +132,7 @@
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
         const loggedUser = localStorage.getItem("loggedUser")
-        const receiver = localStorage.getItem("chatWith")
+        let receiver = localStorage.getItem("chatWith")
         const callType = localStorage.getItem("callType")
 
         socket.emit("register-user", loggedUser)
@@ -309,6 +309,10 @@
             if (type !== "video") return
 
             console.log("📞 Incoming VIDEO call from:", from)
+            receiver = from
+            // 🔥 VERY IMPORTANT (copy from voicechat)
+            localStorage.setItem("chatWith", from)
+            localStorage.setItem("chatName", from)
 
             // 🔥 notification case (offer exists)
             if (offer) {
@@ -382,16 +386,21 @@
 
         /* ---------------- END ---------------- */
 
-        socket.on("call-ended", () => {
+        socket.on("call-ended", ({ from }) => {
+
             alert("Call ended")
-            // window.location.href = "/chat.html"
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
+
+            // 🔥 VERY IMPORTANT (same as voicechat)
+            const otherUser = from || receiver
+
+            localStorage.setItem("chatWith", otherUser)
+
+            const isGroup = false
+            const name = localStorage.getItem("chatName") || otherUser
 
             window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+                `/chat.html?from=${otherUser}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
-
         function endCall() {
 
             socket.emit("end-call", {
