@@ -1343,12 +1343,12 @@ io.on("connection", (socket) => {
                 title: "Missed Group Call",
                 body: `Missed ${type} call in ${groupName} from ${from}`,
                 data: {
-                    from: groupId,
+                    from: to,
                     type,
                     status: "ended",
                     isGroup: true,
                     title: groupName,
-                    tag: groupId
+                    tag: to
                 }
             })
 
