@@ -979,12 +979,29 @@
 
                 replyBlock = `
         <div class="reply-box" 
-             onclick="scrollToMessage('${msgObj.replyTo.messageId}')"
-             style="border-left:3px solid green; padding:5px; margin-bottom:5px; background:#f0f0f0; cursor:pointer;">
-             
-            <small>${replyName}</small><br>
-            ${msgObj.replyTo.text}
-        </div>
+     onclick="scrollToMessage('${msgObj.replyTo.messageId}')"
+     style="
+        border-left:3px solid green;
+        padding:5px;
+        margin-bottom:5px;
+        background:#f0f0f0;
+        cursor:pointer;
+        max-width:200px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+     ">
+     
+    <small>${replyName}</small><br>
+    <span style="
+        display:block;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+    ">
+        ${msgObj.replyTo.text}
+    </span>
+</div>
     `
             }
 
