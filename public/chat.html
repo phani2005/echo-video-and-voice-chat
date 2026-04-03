@@ -682,7 +682,10 @@
                 replyTo: replyingMessage
                     ? {
                         messageId: replyingMessage._id,
-                        text: replyingMessage.message,
+                        text:
+                            replyingMessage.type === "text"
+                                ? replyingMessage.message
+                                : replyingMessage.originalName || replyingMessage.type.toUpperCase(),
                         from: replyingMessage.from
                     }
                     : null
@@ -980,7 +983,7 @@
              style="border-left:3px solid green; padding:5px; margin-bottom:5px; background:#f0f0f0; cursor:pointer;">
              
             <small>${replyName}</small><br>
-            ${msgObj.replyTo.text || "File"}
+            ${msgObj.replyTo.text}
         </div>
     `
             }
@@ -1000,6 +1003,19 @@
             ${senderName}
         </small><br>
     `
+            }
+            if (msgObj.deletedForEveryone) {
+                const msg = document.createElement("div")
+                msg.className = "message " + type
+                msg.setAttribute("data-id", msgObj._id)
+
+                msg.innerHTML = `
+        This message was deleted
+        <span class="time"></span>
+    `
+
+                chatBody.appendChild(msg)
+                return
             }
 
             if (msgObj.type === "image") {
