@@ -327,7 +327,7 @@
             }
 
             // 🔥 online popup
-            const accept = confirm("Incoming video call from " + from)
+            // const accept = confirm("Incoming video call from " + from)
 
             // if (!accept) {
             //     socket.emit("missed-call", {
@@ -337,15 +337,15 @@
             //     })
             //     return
             // }
-            if (!accept) {
+            // if (!accept) {
 
-                socket.emit("call-rejected", {
-                    to: from,
-                    from: loggedUser
-                })
+            //     socket.emit("call-rejected", {
+            //         to: from,
+            //         from: loggedUser
+            //     })
 
-                return
-            }
+            //     return
+            // }
 
             await initLocalStream()
 
