@@ -1134,7 +1134,7 @@ io.on("connection", (socket) => {
                 })
             })
         }
-        if (isGroupCall || isInitialCall === false) return
+        if (isGroupCall || type === "video") return
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
 
         const isInSameChat =
@@ -1406,6 +1406,35 @@ io.on("connection", (socket) => {
         }
 
     })
+    socket.on("video-call-start", async ({ to, from, type }) => {
+
+        console.log("📹 video-call-start:", from, "→", to)
+
+        const roomId = [from, to].sort().join("-")
+
+        activeCalls[roomId] = {
+            users: [from]
+        }
+
+        const subs = await Subscription.find({ email: to })
+        const senderName = await getDisplayName(to, from)
+
+        subs.forEach(s => {
+            webpush.sendNotification(
+                s.sub,
+                JSON.stringify({
+                    title: "Incoming Call",
+                    body: `📹 Video call from ${senderName}`,
+                    url: "/videocall.html",
+                    type: "video",
+                    from: from,
+                    isGroup: false
+                })
+            ).catch(err => {
+                console.log("❌ Push error:", err.message)
+            })
+        })
+    })
     // GROUP CALL START
     socket.on("group-call", async ({ groupId, from, type }) => {
 
@@ -1439,7 +1468,7 @@ io.on("connection", (socket) => {
                 })
             }
             const userSubs = await Subscription.find({ email: member })
-            const groupName=group.name
+            const groupName = group.name
 
             console.log("📲 Sending notification to:", member, "devices:", userSubs.length)
             const senderName = await getDisplayName(member, from)
