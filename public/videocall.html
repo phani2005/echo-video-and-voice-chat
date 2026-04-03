@@ -148,7 +148,6 @@
         let screenSharing = false
         let videoDevices = []
         let currentCameraIndex = 0
-        let callConnected = false
 
         /* ---------------- STREAM ---------------- */
 
@@ -187,7 +186,6 @@
             })
         }
         function startRinging() {
-            if (callConnected) return
             ringtone.currentTime = 0
             ringtone.play().catch(() => { })
         }
@@ -215,20 +213,14 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator && !callConnected && !peers[user]._sentOffer) {
-
-                    peers[user]._sentOffer = true
-
+                if (initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
                         type: "video"
                     })
-                }
-
-                if (!initiator) {
-
+                } else {
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
@@ -237,7 +229,6 @@
             })
 
             peer.on("stream", stream => {
-                callConnected = true
                 stopRinging() // 🔥 NEW
                 clearTimeout(callTimeout) // 🔥 NEW
 
@@ -264,33 +255,8 @@
             startRinging() // 🔥 NEW
 
             callTimeout = setTimeout(() => {
-                socket.emit("call-timeout", {
-                    from: loggedUser,
-                    to: receiver,
-                    type: "video",
-                    isGroup: false
-                })
-
                 alert("Call not answered")
-
-                // 🔥 DO NOT CALL endCall()
-
-                stopRinging()
-                clearTimeout(callTimeout)
-
-                Object.values(peers).forEach(p => p.destroy())
-                peers = {}
-
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop())
-                    localStream = null
-                }
-
-                clearInterval(timerInterval)
-
-                window.location.href =
-                    `/chat.html?from=${receiver}&openChat=true`
-
+                endCall()
             }, 60000)
 
             await initLocalStream()
@@ -303,7 +269,7 @@
                 to: receiver,
                 from: loggedUser,
                 type: "video",
-                isInitialCall: true
+                isInitialCall: false
             })
         }
         async function getCameras() {
@@ -326,22 +292,17 @@
 
             await initLocalStream()
 
-            // 🔥 IMPORTANT FIX
-            if (!callConnected) {
-                createPeer(user, true)
-            }
+            // 🔥 SAME AS VOICE
+            createPeer(user, true)
 
             if (!peers[user]) {
                 createPeer(user, false)
             }
         })
+
         /* ---------------- INCOMING CALL ---------------- */
 
         socket.on("incoming-call", async ({ from, offer, type }) => {
-
-            if (!callConnected) {
-                startRinging()
-            }
 
             if (type !== "video") return
 
@@ -410,7 +371,6 @@
             alert("Call rejected")
 
             // window.location.href = "/chat.html"
-            // const receiver = localStorage.getItem("chatWith")
             const isGroup = localStorage.getItem("isGroup") === "true"
             const name = localStorage.getItem("chatName") || ""
 
@@ -421,32 +381,16 @@
         /* ---------------- END ---------------- */
 
         socket.on("call-ended", () => {
-
-            stopRinging()
-            clearTimeout(callTimeout)
-
-            Object.values(peers).forEach(p => p.destroy())
-            peers = {}
-
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop())
-                localStream = null
-            }
-
-            clearInterval(timerInterval)
-
             alert("Call ended")
-
+            // window.location.href = "/chat.html"
             const isGroup = localStorage.getItem("isGroup") === "true"
             const name = localStorage.getItem("chatName") || ""
 
             window.location.href =
                 `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
-        function endCall() {
 
-            stopRinging()
-            clearTimeout(callTimeout)
+        function endCall() {
 
             socket.emit("end-call", {
                 to: receiver,
@@ -457,24 +401,13 @@
 
             Object.values(peers).forEach(p => p.destroy())
 
-            callConnected = false
-            seconds = 0
-
             if (localStream) {
                 localStream.getTracks().forEach(t => t.stop())
-                localStream = null
             }
-
 
             clearInterval(timerInterval)
 
-            // window.location.href = "/chat.html"
-            // const receiver = localStorage.getItem("chatWith")
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
-
-            window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+            window.location.href = "/chat.html"
         }
 
         /* ---------------- CONTROLS ---------------- */
