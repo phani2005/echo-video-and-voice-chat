@@ -128,6 +128,7 @@
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
 
     <script>
+//previous code
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
@@ -148,7 +149,6 @@
         let screenSharing = false
         let videoDevices = []
         let currentCameraIndex = 0
-        let callConnected = false
 
         /* ---------------- STREAM ---------------- */
 
@@ -215,20 +215,12 @@
                 console.log("📡 SIGNAL:", data.type)
 
                 if (initiator) {
-
-                    if (!callConnected && !peer._sentOffer) {
-
-                        peer._sentOffer = true   // 🔥 prevent duplicate
-
-                        socket.emit("call-user", {
-                            to: user,
-                            from: loggedUser,
-                            offer: data,
-                            type: "video",
-                            isInitialCall: false   // 🔥 VERY IMPORTANT
-                        })
-                    }
-
+                    socket.emit("call-user", {
+                        to: user,
+                        from: loggedUser,
+                        offer: data,
+                        type: "video"
+                    })
                 } else {
                     socket.emit("answer-call", {
                         to: user,
@@ -238,7 +230,6 @@
             })
 
             peer.on("stream", stream => {
-                callConnected = true
                 stopRinging() // 🔥 NEW
                 clearTimeout(callTimeout) // 🔥 NEW
 
@@ -265,19 +256,8 @@
             startRinging() // 🔥 NEW
 
             callTimeout = setTimeout(() => {
-
-                if (callConnected) return   // 🔥 STOP if connected
-
-                socket.emit("call-timeout", {
-                    from: loggedUser,
-                    to: receiver,
-                    type: "video",
-                    isGroup: false
-                })
-
                 alert("Call not answered")
                 endCall()
-
             }, 60000)
 
             await initLocalStream()
@@ -289,8 +269,7 @@
             socket.emit("call-user", {
                 to: receiver,
                 from: loggedUser,
-                type: "video",
-                isInitialCall: true
+                type: "video"
             })
         }
         async function getCameras() {
@@ -314,18 +293,10 @@
             await initLocalStream()
 
             // 🔥 SAME AS VOICE
-            // createPeer(user, true)
+            createPeer(user, true)
 
-            // if (!peers[user]) {
-            //     createPeer(user, false)
-            // }
-            if (callType === "caller") {
-                createPeer(user, true)
-            } else {
-                // 🔥 VERY IMPORTANT (missing piece)
-                socket.emit("request-offer", {
-                    from: loggedUser
-                })
+            if (!peers[user]) {
+                createPeer(user, false)
             }
         })
 
@@ -340,7 +311,6 @@
             // 🔥 notification case (offer exists)
             if (offer) {
                 await initLocalStream()
-                joinCallRoom()
                 createPeer(from, false, offer)
                 return
             }
@@ -372,14 +342,6 @@
 
             console.log("📥 Receiver accepted video call")
         })
-        socket.on("resend-offer", ({ to }) => {
-
-            console.log("🔁 Resending offer to:", to)
-
-            if (peers[to]) return
-
-            createPeer(to, true)
-        })
 
         /* ---------------- ANSWER ---------------- */
 
@@ -408,24 +370,14 @@
 
             alert("Call rejected")
 
-            // window.location.href = "/chat.html"
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
-
-            window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+            window.location.href = "/chat.html"
         })
 
         /* ---------------- END ---------------- */
 
         socket.on("call-ended", () => {
             alert("Call ended")
-            // window.location.href = "/chat.html"
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
-
-            window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+            window.location.href = "/chat.html"
         })
 
         function endCall() {
@@ -445,12 +397,7 @@
 
             clearInterval(timerInterval)
 
-            // window.location.href = "/chat.html"
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
-
-            window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+            window.location.href = "/chat.html"
         }
 
         /* ---------------- CONTROLS ---------------- */
