@@ -128,7 +128,6 @@
     <script src="https://unpkg.com/simple-peer@9/simplepeer.min.js"></script>
 
     <script>
-//previous code
 
         const socket = io(window.location.origin, { transports: ["websocket"] })
 
@@ -269,7 +268,8 @@
             socket.emit("call-user", {
                 to: receiver,
                 from: loggedUser,
-                type: "video"
+                type: "video",
+                isInitialCall: false
             })
         }
         async function getCameras() {
@@ -370,14 +370,24 @@
 
             alert("Call rejected")
 
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            const isGroup = localStorage.getItem("isGroup") === "true"
+            const name = localStorage.getItem("chatName") || ""
+
+            window.location.href =
+                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
 
         /* ---------------- END ---------------- */
 
         socket.on("call-ended", () => {
             alert("Call ended")
-            window.location.href = "/chat.html"
+            // window.location.href = "/chat.html"
+            const isGroup = localStorage.getItem("isGroup") === "true"
+            const name = localStorage.getItem("chatName") || ""
+
+            window.location.href =
+                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
 
         function endCall() {
