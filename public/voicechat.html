@@ -404,6 +404,16 @@
 
             // 🔥 IF OFFER EXISTS → DIRECT CONNECT (notification case)
             if (offer) {
+                const accept = confirm("Incoming voice call from " + from)
+
+                if (!accept) {
+                    socket.emit("call-rejected", {
+                        to: from,
+                        from: loggedUser,
+                        type: "voice"
+                    })
+                    return
+                }
                 await initLocalStream()
                 createPeer(from, false, offer)
                 return
