@@ -1287,7 +1287,9 @@ io.on("connection", (socket) => {
 
         if (receiverSocket) {
             receiverSocket.forEach(id => {
-                io.to(id).emit("call-ended")
+                io.to(id).emit("call-ended", {
+                    from: socket.userEmail
+                })
             })
         }
 
