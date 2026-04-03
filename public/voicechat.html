@@ -396,6 +396,9 @@
             // ✅ UPDATE RECEIVER (FIX CORE BUG)
             receiver = from
 
+            localStorage.setItem("chatWith", from)
+            localStorage.setItem("chatName", from)
+
             // ✅ UPDATE UI IMMEDIATELY
             loadCallerInfo()
 
@@ -454,15 +457,20 @@
 
         /* ---------------- END ---------------- */
 
-        socket.on("call-ended", () => {
+        socket.on("call-ended", ({ from }) => {
+
             alert("Call ended")
-            // window.location.href = "/chat.html"
-            // const receiver = localStorage.getItem("chatWith")
-            const isGroup = localStorage.getItem("isGroup") === "true"
-            const name = localStorage.getItem("chatName") || ""
+
+            // 🔥 ALWAYS USE FROM (REAL OTHER USER)
+            const otherUser = from || receiver
+
+            localStorage.setItem("chatWith", otherUser)
+
+            const isGroup = false
+            const name = localStorage.getItem("chatName") || otherUser
 
             window.location.href =
-                `/chat.html?from=${receiver}&isGroup=${isGroup}&name=${name}&openChat=true`
+                `/chat.html?from=${otherUser}&isGroup=${isGroup}&name=${name}&openChat=true`
         })
         socket.on("call-rejected", ({ from }) => {
 
