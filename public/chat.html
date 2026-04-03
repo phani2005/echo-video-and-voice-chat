@@ -323,7 +323,7 @@
 
             /* ---- SHOW REAL MESSAGE ---- */
 
-            // addMessage(msgObj, "sent")
+            addMessage(msgObj, "sent")
 
             chatBody.scrollTop = chatBody.scrollHeight
 
@@ -720,6 +720,10 @@
             //     return
             // }
             // maybe you need to chane the code here
+            // 🔥 PREVENT DUPLICATE (CRITICAL FIX)
+            if (document.querySelector(`[data-id="${msgObj._id}"]`)) {
+                return
+            }
             if (msgObj.isGroup) {
 
                 if (msgObj.groupId !== receiverEmail) {
