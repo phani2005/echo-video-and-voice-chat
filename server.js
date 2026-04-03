@@ -1408,6 +1408,7 @@ io.on("connection", (socket) => {
                 body: `❌ Missed ${callType} call from ${senderName}`,
                 data: {
                     from,
+                    callerName: senderName,
                     type,
                     status: "ended",
                     isGroup: false,
@@ -1507,6 +1508,7 @@ io.on("connection", (socket) => {
             body: `Missed ${type} call from ${senderName}`,
             data: {
                 from,
+                callerName: senderName,
                 type,
                 status: "ended",
                 isGroup: false
