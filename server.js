@@ -1343,11 +1343,12 @@ io.on("connection", (socket) => {
                 title: "Missed Group Call",
                 body: `Missed ${type} call in ${groupName} from ${from}`,
                 data: {
-                    from,
+                    from: groupId,
                     type,
                     status: "ended",
                     isGroup: true,
-                    title: groupName   // 🔥 VERY IMPORTANT
+                    title: groupName,
+                    tag: groupId
                 }
             })
 
@@ -1557,7 +1558,8 @@ io.on("connection", (socket) => {
                             : "/groupvoicecall.html",
                         from: groupId,
                         type: type,
-                        isGroup: true
+                        isGroup: true,
+                        tag: groupId
                     })
                 ).catch(err => {
                     console.log("❌ Push failed:", err.message)
