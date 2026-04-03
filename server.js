@@ -1363,7 +1363,9 @@ io.on("connection", (socket) => {
                         title: groupName,
                         body: `❌ Missed ${callType} call from ${senderName}`,
                         data: {
-                            from: groupId,
+                            from: from,
+                            groupId: groupId,
+                            callerName: senderName,
                             type,
                             status: "ended",
                             isGroup: true,
@@ -1498,10 +1500,11 @@ io.on("connection", (socket) => {
     socket.on("call-rejected", async ({ to, from }) => {
 
         console.log("❌ Call rejected:", from, "→", to)
+         const senderName = await getDisplayName(to, from)
         await sendCallNotification({
             toUsers: [to],
             title: "Missed Call",
-            body: `Missed ${type} call from ${from}`,
+            body: `Missed ${type} call from ${senderName}`,
             data: {
                 from,
                 type,
