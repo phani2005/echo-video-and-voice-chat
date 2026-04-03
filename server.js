@@ -1610,11 +1610,11 @@ io.on("connection", (socket) => {
         socket.join(groupId)
         console.log("📥 JOIN GROUP CALL:", groupId, user)
         // 🔥 CREATE CALL IF NOT EXISTS (SAFE FIX)
-        if (!activeCalls[groupId]) {
-            activeCalls[groupId] = {
-                users: []
-            }
-        }
+        // if (!activeCalls[groupId]) {
+        //     activeCalls[groupId] = {
+        //         users: []
+        //     }
+        // }
 
         // ✅ CHECK ACTIVE CALL
         const call = activeCalls[groupId]
