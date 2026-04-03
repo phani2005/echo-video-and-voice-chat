@@ -1155,7 +1155,7 @@ io.on("connection", (socket) => {
                 })
             })
         }
-        if (isGroupCall || type === "video") return
+        // if (isGroupCall || type === "video") return
         let callTypeText = type === "video" ? "📹 Video Call" : "📞 Voice Call"
 
         const isInSameChat =
