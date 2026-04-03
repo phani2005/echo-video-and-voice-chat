@@ -1331,7 +1331,9 @@ io.on("connection", (socket) => {
                         title: groupName,
                         body: `❌ Missed ${callType} call from ${senderName}`,
                         data: {
-                            from: groupId,
+                            from: from,
+                            groupId: groupId,
+                            callerName: senderName,
                             type,
                             status: "ended",
                             isGroup: true,
@@ -1441,7 +1443,9 @@ io.on("connection", (socket) => {
                     title: groupName,
                     body: `❌ Missed ${type === "video" ? "Video" : "Voice"} call from ${senderName}`,
                     data: {
-                        from: to,      // groupId
+                        from: from,
+                        groupId: to,
+                        callerName: senderName,      // groupId
                         type,
                         status: "ended",
                         isGroup: true,
@@ -1463,6 +1467,7 @@ io.on("connection", (socket) => {
             body: `Missed ${type} call from ${senderName}`,
             data: {
                 from,
+                callerName: senderName,
                 type,
                 status: "ended",
                 isGroup: false
