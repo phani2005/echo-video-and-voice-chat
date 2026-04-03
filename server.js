@@ -1327,8 +1327,33 @@ io.on("connection", (socket) => {
         })
 
     })
-    socket.on("call-timeout", async ({ from, to, type }) => {
+    socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
         console.log("⏱️ Call timeout:", from, "→", to)
+        if (isGroup) {
+
+            const group = await Group.findById(to)
+
+            if (!group) return
+
+            const groupName = group.name
+
+            // 🔥 SEND TO ALL MEMBERS
+            await sendCallNotification({
+                toUsers: group.members,   // ✅ ALL USERS
+                title: "Missed Group Call",
+                body: `Missed ${type} call in ${groupName} from ${from}`,
+                data: {
+                    from,
+                    type,
+                    status: "ended",
+                    isGroup: true,
+                    title: groupName   // 🔥 VERY IMPORTANT
+                }
+            })
+
+            return   // 🔥 STOP NORMAL FLOW
+        }
+
 
         // 🔥 NORMAL CALL
         await sendCallNotification({
