@@ -258,6 +258,26 @@ app.post("/subscribe", async (req, res) => {
         res.status(500).json({ success: false })
     }
 })
+async function sendCallNotification({ toUsers, title, body, data }) {
+
+    for (let user of toUsers) {
+
+        const subs = await Subscription.find({ email: user })
+
+        subs.forEach(s => {
+            webpush.sendNotification(
+                s.sub,
+                JSON.stringify({
+                    title,
+                    body,
+                    ...data
+                })
+            ).catch(err => {
+                console.log("❌ Push error:", err.message)
+            })
+        })
+    }
+}
 app.post("/login", async (req, res) => {
     try {
 
@@ -1308,6 +1328,20 @@ io.on("connection", (socket) => {
 
     })
     socket.on("call-timeout", async ({ from, to, type }) => {
+        console.log("⏱️ Call timeout:", from, "→", to)
+
+        // 🔥 NORMAL CALL
+        await sendCallNotification({
+            toUsers: [to],
+            title: "Missed Call",
+            body: `Missed ${type} call from ${from}`,
+            data: {
+                from,
+                type,
+                status: "ended",
+                isGroup: false
+            }
+        })
 
         await Call.create({
             caller: from,
@@ -1330,9 +1364,20 @@ io.on("connection", (socket) => {
         })
 
     })
-    socket.on("call-rejected", ({ to, from }) => {
+    socket.on("call-rejected", async ({ to, from }) => {
 
         console.log("❌ Call rejected:", from, "→", to)
+        await sendCallNotification({
+            toUsers: [to],
+            title: "Missed Call",
+            body: `Missed ${type} call from ${from}`,
+            data: {
+                from,
+                type,
+                status: "ended",
+                isGroup: false
+            }
+        })
 
         const callerSockets = onlineUsers[to]
 
@@ -1539,6 +1584,12 @@ io.on("connection", (socket) => {
 
         socket.join(groupId)
         console.log("📥 JOIN GROUP CALL:", groupId, user)
+        // 🔥 CREATE CALL IF NOT EXISTS (SAFE FIX)
+        if (!activeCalls[groupId]) {
+            activeCalls[groupId] = {
+                users: []
+            }
+        }
 
         // ✅ CHECK ACTIVE CALL
         const call = activeCalls[groupId]
