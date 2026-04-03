@@ -1302,8 +1302,84 @@ io.on("connection", (socket) => {
 
     })
     //end-call
-    socket.on("end-call", async ({ to, from, type, duration }) => {
+    socket.on("end-call", async ({ to, from, type, duration, isGroup }) => {
 
+        const callType = type === "video" ? "Video" : "Voice"
+
+        // =========================
+        // 🔥 GROUP CALL LOGIC
+        // =========================
+        if (isGroup) {
+
+            const groupId = to
+            const call = activeCalls[groupId]
+
+            const group = await Group.findById(groupId)
+            if (!group) return
+
+            const groupName = group.name
+
+            // 🔥 CASE 1: NO ONE JOINED (MISSED GROUP CALL)
+            if (!call || call.users.length <= 1) {
+
+                for (let member of group.members) {
+
+                    const senderName = await getDisplayName(member, from)
+
+                    await sendCallNotification({
+                        toUsers: [member],
+                        title: groupName,
+                        body: `❌ Missed ${callType} call from ${senderName}`,
+                        data: {
+                            from: groupId,
+                            type,
+                            status: "ended",
+                            isGroup: true,
+                            title: groupName,
+                            tag: groupId
+                        }
+                    })
+                }
+
+                delete activeCalls[groupId]
+                return
+            }
+
+            // 🔥 REMOVE USER FROM ACTIVE CALL
+            call.users = call.users.filter(u => u !== from)
+
+            // 🔥 CASE 2: ALL USERS LEFT → FINAL END
+            if (call.users.length === 0) {
+
+                for (let member of group.members) {
+
+                    if (member === from) continue
+                    const senderName = await getDisplayName(member, from)
+
+                    await sendCallNotification({
+                        toUsers: [member],
+                        title: groupName,
+                        body: `❌ Missed ${callType} call from ${senderName}`,
+                        data: {
+                            from: groupId,
+                            type,
+                            status: "ended",
+                            isGroup: true,
+                            title: groupName,
+                            tag: groupId
+                        }
+                    })
+                }
+
+                delete activeCalls[groupId]
+            }
+
+            return
+        }
+
+        // =========================
+        // 🔥 NORMAL CALL LOGIC
+        // =========================
         const receiverSocket = onlineUsers[to]
 
         if (receiverSocket) {
@@ -1315,52 +1391,76 @@ io.on("connection", (socket) => {
         }
 
         const roomId = [from, to].sort().join("-")
-        delete activeCalls[roomId]
+        const call = activeCalls[roomId]
 
+        // 🔥 CASE: NOT CONNECTED → MISSED CALL
+        if (!call || !call.users.includes(to)) {
+
+            const senderName = await getDisplayName(to, from)
+
+            await sendCallNotification({
+                toUsers: [to],
+                title: "Missed Call",
+                body: `❌ Missed ${callType} call from ${senderName}`,
+                data: {
+                    from,
+                    type,
+                    status: "ended",
+                    isGroup: false,
+                    tag: from
+                }
+            })
+        }
+
+        delete activeCalls[roomId]
 
         await Call.create({
             caller: from,
             receiver: to,
-            type: type,
-            duration: duration,
+            type,
+            duration,
             timestamp: new Date()
         })
-
     })
     socket.on("call-timeout", async ({ from, to, type, isGroup }) => {
         console.log("⏱️ Call timeout:", from, "→", to)
         if (isGroup) {
 
             const group = await Group.findById(to)
-
             if (!group) return
 
             const groupName = group.name
 
-            // 🔥 SEND TO ALL MEMBERS
-            await sendCallNotification({
-                toUsers: group.members,   // ✅ ALL USERS
-                title: "Missed Group Call",
-                body: `Missed ${type} call in ${groupName} from ${from}`,
-                data: {
-                    from: to,
-                    type,
-                    status: "ended",
-                    isGroup: true,
-                    title: groupName,
-                    tag: to
-                }
-            })
+            // 🔥 SEND TO EACH USER SEPARATELY
+            for (let member of group.members) {
 
-            return   // 🔥 STOP NORMAL FLOW
+                const senderName = await getDisplayName(member, from)
+
+                await sendCallNotification({
+                    toUsers: [member],   // ✅ ONE USER AT A TIME
+                    title: groupName,
+                    body: `❌ Missed ${type === "video" ? "Video" : "Voice"} call from ${senderName}`,
+                    data: {
+                        from: to,      // groupId
+                        type,
+                        status: "ended",
+                        isGroup: true,
+                        title: groupName,
+                        tag: to        // 🔥 SAME TAG → replace
+                    }
+                })
+            }
+
+            return
         }
+        const senderName = await getDisplayName(to, from)
 
 
         // 🔥 NORMAL CALL
         await sendCallNotification({
             toUsers: [to],
             title: "Missed Call",
-            body: `Missed ${type} call from ${from}`,
+            body: `Missed ${type} call from ${senderName}`,
             data: {
                 from,
                 type,
