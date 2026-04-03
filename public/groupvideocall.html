@@ -527,7 +527,8 @@
                 to: groupId,
                 from: loggedUser,
                 type: "video",
-                duration: 0
+                duration: 0,
+                isGroup: true
             })
 
             Object.values(peers).forEach(p => p.destroy())
