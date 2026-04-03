@@ -321,6 +321,11 @@
             // }
             if (callType === "caller") {
                 createPeer(user, true)
+            } else {
+                // 🔥 VERY IMPORTANT (missing piece)
+                socket.emit("request-offer", {
+                    from: loggedUser
+                })
             }
         })
 
@@ -335,6 +340,7 @@
             // 🔥 notification case (offer exists)
             if (offer) {
                 await initLocalStream()
+                joinCallRoom()
                 createPeer(from, false, offer)
                 return
             }
@@ -365,6 +371,14 @@
             joinCallRoom()
 
             console.log("📥 Receiver accepted video call")
+        })
+        socket.on("resend-offer", ({ to }) => {
+
+            console.log("🔁 Resending offer to:", to)
+
+            if (peers[to]) return
+
+            createPeer(to, true)
         })
 
         /* ---------------- ANSWER ---------------- */
