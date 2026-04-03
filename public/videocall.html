@@ -265,11 +265,10 @@
 
             console.log("📥 Caller joined video call")
 
-            socket.emit("call-user", {
+            socket.emit("video-call-start", {
                 to: receiver,
                 from: loggedUser,
-                type: "video",
-                isInitialCall: false
+                type: "video"
             })
         }
         async function getCameras() {
@@ -293,10 +292,13 @@
             await initLocalStream()
 
             // 🔥 SAME AS VOICE
-            createPeer(user, true)
+            // createPeer(user, true)
 
-            if (!peers[user]) {
-                createPeer(user, false)
+            // if (!peers[user]) {
+            //     createPeer(user, false)
+            // }
+            if (callType === "caller") {
+                createPeer(user, true)
             }
         })
 
@@ -577,6 +579,9 @@
             (async () => {
                 await initLocalStream()
                 joinCallRoom()
+                if (callType === "caller") {
+                    createPeer(user, true)
+                }
                 console.log("📥 Receiver joined video call")
             })()
         }
