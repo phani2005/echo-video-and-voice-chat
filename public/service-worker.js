@@ -12,7 +12,7 @@ self.addEventListener("push", function (event) {
 
     if (data.status === "ended") {
 
-    const caller = data.from || "Unknown"
+    const caller = data.callerName || data.from || "Unknown"
     const callType = data.type === "video" ? "Video" : "Voice"
 
     if (data.isGroup) {
