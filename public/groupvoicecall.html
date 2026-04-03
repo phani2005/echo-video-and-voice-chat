@@ -426,7 +426,8 @@
                 to: groupId,
                 from: loggedUser,
                 type: "voice",
-                duration: seconds
+                duration: seconds,
+                isGroup: true
             })
 
             Object.values(peers).forEach(p => p.destroy())
