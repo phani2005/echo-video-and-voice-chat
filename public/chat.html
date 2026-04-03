@@ -1224,19 +1224,19 @@
             }
 
 
-            const accept = confirm(`Incoming ${type} call from ${from}`)
+            // const accept = confirm(`Incoming ${type} call from ${from}`)
 
-            if (!accept) {
-                console.log("❌ Call rejected in chat.html")
+            // if (!accept) {
+            //     console.log("❌ Call rejected in chat.html")
 
-                // 🔥 VERY IMPORTANT
-                socket.emit("call-rejected", {
-                    to: from,
-                    from: loggedUser
-                })
+            //     // 🔥 VERY IMPORTANT
+            //     socket.emit("call-rejected", {
+            //         to: from,
+            //         from: loggedUser
+            //     })
 
-                return
-            }
+            //     return
+            // }
 
             localStorage.setItem("callType", "receiver")
             localStorage.setItem("incomingOffer", JSON.stringify(offer))
@@ -1257,7 +1257,7 @@
         })
         socket.on("incoming-group-call", ({ from, groupId, type }) => {
 
-            const accept = confirm(`Group ${type} call from ${from}`)
+            // const accept = confirm(`Group ${type} call from ${from}`)
 
             if (!accept) return
 
