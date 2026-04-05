@@ -1,7 +1,6 @@
-const CACHE_NAME = "chat-app-v1";
+const CACHE_NAME = "chat-app-v2";
 
 const urlsToCache = [
-  "/",
   "/login.html",
   "/main.html",
   "/chat.html",
@@ -9,7 +8,8 @@ const urlsToCache = [
   "/main.css",
   "/chat.css",
   "/main.js",
-  "/icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
   "/manifest.json"
 ];
 self.addEventListener("install", event => {
@@ -53,13 +53,17 @@ self.addEventListener("fetch", event => {
 
                 return fetch(event.request).then(fetchRes => {
 
-                    return caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, fetchRes.clone());
-                        return fetchRes;
-                    });
+    // ❌ Skip caching redirected responses
+    if (!fetchRes || fetchRes.status !== 200 || fetchRes.type === "opaqueredirect") {
+        return fetchRes;
+    }
 
-                });
+    return caches.open(CACHE_NAME).then(cache => {
+        cache.put(event.request, fetchRes.clone());
+        return fetchRes;
+    });
 
+});
             })
             .catch(() => caches.match("/login.html"))
     );
