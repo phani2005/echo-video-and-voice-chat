@@ -1,4 +1,4 @@
-const CACHE_NAME = "chat-app-v2";
+const CACHE_NAME = "chat-app-v3";
 
 const urlsToCache = [
   "/login.html",
@@ -50,7 +50,7 @@ self.addEventListener("fetch", event => {
         url.includes("/delete") ||
         event.request.method !== "GET"
     ) {
-        return fetch(event.request); // always fresh data
+        return; // always fresh data
     }
 
     event.respondWith(
