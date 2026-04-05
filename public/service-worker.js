@@ -36,39 +36,41 @@ self.addEventListener("activate", event => {
 });
 self.addEventListener("fetch", event => {
 
-    // ❌ Skip socket.io & API calls
+    const url = event.request.url;
+
+    // ❌ NEVER CACHE THESE (VERY IMPORTANT)
     if (
-        event.request.url.includes("/socket.io") ||
-        event.request.url.includes("/api") ||
+        url.includes("/socket.io") ||
+        url.includes("/api") ||
+        url.includes("/messages") ||
+        url.includes("/conversations") ||
+        url.includes("/getcontacts") ||
+        url.includes("/upload-message") ||
+        url.includes("/subscribe") ||
+        url.includes("/delete") ||
         event.request.method !== "GET"
     ) {
-        return;
+        return fetch(event.request); // always fresh data
     }
 
     event.respondWith(
         caches.match(event.request)
             .then(response => {
+                return response || fetch(event.request).then(fetchRes => {
 
-                if (response) return response;
+                    if (!fetchRes || fetchRes.status !== 200) {
+                        return fetchRes;
+                    }
 
-                return fetch(event.request).then(fetchRes => {
-
-    // ❌ Skip caching redirected responses
-    if (!fetchRes || fetchRes.status !== 200 || fetchRes.type === "opaqueredirect") {
-        return fetchRes;
-    }
-
-    return caches.open(CACHE_NAME).then(cache => {
-        cache.put(event.request, fetchRes.clone());
-        return fetchRes;
-    });
-
-});
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, fetchRes.clone());
+                        return fetchRes;
+                    });
+                });
             })
             .catch(() => caches.match("/login.html"))
     );
 });
-
 self.addEventListener("push", function (event) {
 
     const data = event.data ? event.data.json() : {};
@@ -101,8 +103,8 @@ self.addEventListener("push", function (event) {
 
     const options = {
         body: body,
-        icon: "/icon.png",
-        badge: "/icon.png",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
 
         tag: data.tag || data.from, // 🔥 IMPORTANT (same notification)
 
