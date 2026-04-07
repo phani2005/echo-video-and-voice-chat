@@ -189,8 +189,37 @@ function openChangeDp() {
 function openCreateGroup() {
     window.location.href = "/addgroup.html"
 }
-function logout() {
+async function logout() {
+
+    const email = localStorage.getItem("loggedUser")
+
+    try {
+        // 🔥 Unsubscribe push
+        const registration = await navigator.serviceWorker.ready
+        const sub = await registration.pushManager.getSubscription()
+
+        if (sub) {
+            await fetch("/unsubscribe", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    endpoint: sub.endpoint
+                })
+            })
+
+            await sub.unsubscribe()
+        }
+
+    } catch (err) {
+        console.log("Unsubscribe error:", err)
+    }
+
+    // 🔥 Clear user
     localStorage.removeItem("loggedUser")
+
     window.location.href = "/login.html"
 }
 function openProfile() {
