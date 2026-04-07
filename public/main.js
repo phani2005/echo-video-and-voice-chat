@@ -5,8 +5,8 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("❌ SW Error:", err));
     });
 }
-const socket = io({
-    transports: ["websocket"],
+const socket = io(window.location.origin, {
+    transports: ["polling", "websocket"], // 🔥 allow fallback
     withCredentials: true
 })
 const loggedUserEmail = localStorage.getItem("loggedUser")
