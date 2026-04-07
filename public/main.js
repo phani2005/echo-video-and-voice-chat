@@ -8,7 +8,6 @@ if ("serviceWorker" in navigator) {
 const loggedUserEmail = localStorage.getItem("loggedUser")
 if (!loggedUserEmail) {
     window.location.href = "/login.html"
-    return
 }
 const socket = io(window.location.origin)
 
