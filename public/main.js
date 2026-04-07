@@ -185,17 +185,17 @@ function updateContactUI(contactEmail, msg) {
             }
 
             // 🔥 increase unread count
-            // let unreadDiv = div.querySelector(".unread")
+            let unreadDiv = div.querySelector(".unread")
 
-            // if (!unreadDiv) {
-            //     unreadDiv = document.createElement("div")
-            //     unreadDiv.className = "unread"
-            //     div.querySelector(".contact-right").prepend(unreadDiv)
-            //     unreadDiv.innerText = 1
-            // } else {
-            //     unreadDiv.innerText = parseInt(unreadDiv.innerText) + 1
-            // }
-            // 🔥 UNIQUE KEY
+            if (!unreadDiv) {
+                unreadDiv = document.createElement("div")
+                unreadDiv.className = "unread"
+                div.querySelector(".contact-right").prepend(unreadDiv)
+                unreadDiv.innerText = 1
+            } else {
+                unreadDiv.innerText = parseInt(unreadDiv.innerText) + 1
+            }
+            🔥 UNIQUE KEY
             const key = "unread_" + contactEmail
 
             let unreadCount = parseInt(localStorage.getItem(key)) || 0
