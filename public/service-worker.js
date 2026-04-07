@@ -50,7 +50,7 @@ self.addEventListener("fetch", event => {
         url.includes("/delete") ||
         event.request.method !== "GET"
     ) {
-        return; // always fresh data
+        return fetch(event.request); // always fresh data
     }
 
     event.respondWith(
