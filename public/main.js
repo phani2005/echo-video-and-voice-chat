@@ -11,9 +11,9 @@ if (!loggedUserEmail) {
     return
 }
 const socket = io(window.location.origin)
-if (loggedUserEmail) {
+
     socket.emit("register-user", loggedUserEmail)
-}
+
 
 socket.on("receive-message", (msg) => {
 
