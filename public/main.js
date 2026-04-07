@@ -1,3 +1,4 @@
+//previous code
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("/service-worker.js")
@@ -5,17 +6,19 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("❌ SW Error:", err));
     });
 }
-const socket = io(window.location.origin, {
-    transports: ["polling", "websocket"], // 🔥 allow fallback
-    withCredentials: true
-})
-const loggedUserEmail = localStorage.getItem("loggedUser")
+const socket = io(window.location.origin)
 
+const loggedUserEmail = localStorage.getItem("loggedUser")
+const loggedUsers = localStorage.getItem("loggedUser")
+
+if (loggedUsers) {
+    window.location.href = "/main.html"
+}
 if (loggedUserEmail) {
     socket.emit("register-user", loggedUserEmail)
-    setupNotifications().catch(err => {
-        console.log("Notification setup failed:", err)
-    })
+}
+if (!loggedUserEmail) {
+    window.location.href = "/login.html"
 }
 socket.on("receive-message", (msg) => {
 
@@ -34,64 +37,6 @@ socket.on("receive-message", (msg) => {
     // 🔥 Update existing contact OR reload list
     updateContactUI(otherUser, msg)
 })
-function urlBase64ToUint8Array(base64String) {
-
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
-    const base64 = (base64String + padding)
-        .replace(/-/g, '+')
-        .replace(/_/g, '/')
-
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i)
-    }
-
-    return outputArray
-}
-async function setupNotifications() {
-
-    const permission = await Notification.requestPermission()
-    const registration = await navigator.serviceWorker.ready
-
-    const existingSub = await registration.pushManager.getSubscription()
-
-if (existingSub) {
-    console.log("⚡ Already subscribed")
-    return
-}
-
-    if (permission !== "granted") {
-        console.log("❌ Notifications blocked")
-        return
-    }
-
-    console.log("✅ Subscribing user...")
-
-    
-    const VAPID_PUBLIC_KEY = "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM"
-
-const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-
-const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: convertedKey
-})
-
-    await fetch("/subscribe", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email: localStorage.getItem("loggedUser"),
-            subscription
-        })
-    })
-
-    console.log("✅ Subscribed successfully")
-}
 async function loadContacts() {
 
     // const res = await fetch(`/getcontacts/${loggedUserEmail}`)
@@ -185,17 +130,17 @@ function updateContactUI(contactEmail, msg) {
             }
 
             // 🔥 increase unread count
-            let unreadDiv = div.querySelector(".unread")
+            // let unreadDiv = div.querySelector(".unread")
 
-            if (!unreadDiv) {
-                unreadDiv = document.createElement("div")
-                unreadDiv.className = "unread"
-                div.querySelector(".contact-right").prepend(unreadDiv)
-                unreadDiv.innerText = 1
-            } else {
-                unreadDiv.innerText = parseInt(unreadDiv.innerText) + 1
-            }
-            🔥 UNIQUE KEY
+            // if (!unreadDiv) {
+            //     unreadDiv = document.createElement("div")
+            //     unreadDiv.className = "unread"
+            //     div.querySelector(".contact-right").prepend(unreadDiv)
+            //     unreadDiv.innerText = 1
+            // } else {
+            //     unreadDiv.innerText = parseInt(unreadDiv.innerText) + 1
+            // }
+            // 🔥 UNIQUE KEY
             const key = "unread_" + contactEmail
 
             let unreadCount = parseInt(localStorage.getItem(key)) || 0
@@ -245,8 +190,37 @@ function openChangeDp() {
 function openCreateGroup() {
     window.location.href = "/addgroup.html"
 }
-function logout() {
+async function logout() {
+
+    const email = localStorage.getItem("loggedUser")
+
+    try {
+        // 🔥 Unsubscribe push
+        const registration = await navigator.serviceWorker.ready
+        const sub = await registration.pushManager.getSubscription()
+
+        if (sub) {
+            await fetch("/unsubscribe", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    endpoint: sub.endpoint
+                })
+            })
+
+            await sub.unsubscribe()
+        }
+
+    } catch (err) {
+        console.log("Unsubscribe error:", err)
+    }
+
+    // 🔥 Clear user
     localStorage.removeItem("loggedUser")
+
     window.location.href = "/login.html"
 }
 function openProfile() {
