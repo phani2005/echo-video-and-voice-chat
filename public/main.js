@@ -5,15 +5,13 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("❌ SW Error:", err));
     });
 }
-const loggedUserEmail = localStorage.getItem("loggedUser")
-if (!loggedUserEmail) {
-    window.location.href = "/login.html"
-}
 const socket = io(window.location.origin)
-if (loggedUserEmail){
+
+const loggedUserEmail = localStorage.getItem("loggedUser")
+
+if (loggedUserEmail) {
     socket.emit("register-user", loggedUserEmail)
 }
-
 socket.on("receive-message", (msg) => {
 
     console.log("🔥 New message on main page:", msg)
@@ -184,37 +182,8 @@ function openChangeDp() {
 function openCreateGroup() {
     window.location.href = "/addgroup.html"
 }
-async function logout() {
-
-    const email = localStorage.getItem("loggedUser")
-
-    try {
-        // 🔥 Unsubscribe push
-        const registration = await navigator.serviceWorker.ready
-        const sub = await registration.pushManager.getSubscription()
-
-        if (sub) {
-            await fetch("/unsubscribe", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    email,
-                    endpoint: sub.endpoint
-                })
-            })
-
-            await sub.unsubscribe()
-        }
-
-    } catch (err) {
-        console.log("Unsubscribe error:", err)
-    }
-
-    // 🔥 Clear user
+function logout() {
     localStorage.removeItem("loggedUser")
-
     window.location.href = "/login.html"
 }
 function openProfile() {
