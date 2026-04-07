@@ -11,6 +11,7 @@ const loggedUserEmail = localStorage.getItem("loggedUser")
 
 if (loggedUserEmail) {
     socket.emit("register-user", loggedUserEmail)
+    setupNotifications()
 }
 socket.on("receive-message", (msg) => {
 
@@ -29,6 +30,37 @@ socket.on("receive-message", (msg) => {
     // 🔥 Update existing contact OR reload list
     updateContactUI(otherUser, msg)
 })
+async function setupNotifications() {
+
+    const permission = await Notification.requestPermission()
+
+    if (permission !== "granted") {
+        console.log("❌ Notifications blocked")
+        return
+    }
+
+    console.log("✅ Subscribing user...")
+
+    const registration = await navigator.serviceWorker.ready
+
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: "YOUR_PUBLIC_VAPID_KEY"
+    })
+
+    await fetch("/subscribe", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: localStorage.getItem("loggedUser"),
+            subscription
+        })
+    })
+
+    console.log("✅ Subscribed successfully")
+}
 async function loadContacts() {
 
     // const res = await fetch(`/getcontacts/${loggedUserEmail}`)
