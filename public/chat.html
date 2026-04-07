@@ -340,7 +340,10 @@
         // const socket = io(window.location.origin, {
         //     transports: ["websocket"]
         // })
-        const socket = io(window.location.origin)
+        const socket = io(window.location.origin, {
+    transports: ["polling", "websocket"], // 🔥 allow fallback
+    withCredentials: true
+})
         const loggedUser = localStorage.getItem("loggedUser")
         console.log("Logged user:", loggedUser)
         console.log("Receiver:", receiverEmail)
