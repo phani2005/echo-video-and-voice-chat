@@ -8,9 +8,16 @@ if ("serviceWorker" in navigator) {
 const socket = io(window.location.origin)
 
 const loggedUserEmail = localStorage.getItem("loggedUser")
+const loggedUsers = localStorage.getItem("loggedUser")
 
+if (loggedUsers) {
+    window.location.href = "/main.html"
+}
 if (loggedUserEmail) {
     socket.emit("register-user", loggedUserEmail)
+}
+if (!loggedUserEmail) {
+    window.location.href = "/login.html"
 }
 socket.on("receive-message", (msg) => {
 
