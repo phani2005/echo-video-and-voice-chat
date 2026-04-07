@@ -300,6 +300,24 @@ app.post("/login", async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" })
     }
 })
+app.post("/unsubscribe", async (req, res) => {
+    const { email, endpoint } = req.body
+
+    try {
+        await Subscription.deleteOne({
+            email,
+            "sub.endpoint": endpoint
+        })
+
+        console.log("❌ Unsubscribed:", email)
+
+        res.json({ success: true })
+
+    } catch (err) {
+        console.log("UNSUBSCRIBE ERROR:", err)
+        res.status(500).json({ success: false })
+    }
+})
 app.get("/", (req, res) => {
     res.redirect("/login.html")
 })
