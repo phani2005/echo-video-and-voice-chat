@@ -5,20 +5,15 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("❌ SW Error:", err));
     });
 }
-const socket = io(window.location.origin)
-
 const loggedUserEmail = localStorage.getItem("loggedUser")
-const loggedUsers = localStorage.getItem("loggedUser")
-
-if (loggedUsers) {
-    window.location.href = "/main.html"
-}
-if (loggedUserEmail) {
-    socket.emit("register-user", loggedUserEmail)
-}
 if (!loggedUserEmail) {
     window.location.href = "/login.html"
 }
+const socket = io(window.location.origin)
+if (loggedUserEmail) {
+    socket.emit("register-user", loggedUserEmail)
+}
+
 socket.on("receive-message", (msg) => {
 
     console.log("🔥 New message on main page:", msg)
