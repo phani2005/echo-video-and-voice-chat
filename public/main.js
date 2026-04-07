@@ -5,13 +5,17 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("❌ SW Error:", err));
     });
 }
-const socket = io(window.location.origin)
-
+const socket = io({
+    transports: ["websocket"],
+    withCredentials: true
+})
 const loggedUserEmail = localStorage.getItem("loggedUser")
 
 if (loggedUserEmail) {
     socket.emit("register-user", loggedUserEmail)
-    setupNotifications()
+    setupNotifications().catch(err => {
+        console.log("Notification setup failed:", err)
+    })
 }
 socket.on("receive-message", (msg) => {
 
@@ -49,6 +53,12 @@ function urlBase64ToUint8Array(base64String) {
 async function setupNotifications() {
 
     const permission = await Notification.requestPermission()
+    const existingSub = await registration.pushManager.getSubscription()
+
+if (existingSub) {
+    console.log("⚡ Already subscribed")
+    return
+}
 
     if (permission !== "granted") {
         console.log("❌ Notifications blocked")
