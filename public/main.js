@@ -53,6 +53,8 @@ function urlBase64ToUint8Array(base64String) {
 async function setupNotifications() {
 
     const permission = await Notification.requestPermission()
+    const registration = await navigator.serviceWorker.ready
+
     const existingSub = await registration.pushManager.getSubscription()
 
 if (existingSub) {
@@ -67,8 +69,7 @@ if (existingSub) {
 
     console.log("✅ Subscribing user...")
 
-    const registration = await navigator.serviceWorker.ready
-
+    
     const VAPID_PUBLIC_KEY = "BGBN28y8CEWU4UHdBgaOZcSBFThn8YkbScCRogRVy_sHzO_q66kfBS-sVlUr6QiE7TM7X3iRU1krbfVAuJhhOIM"
 
 const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
