@@ -148,7 +148,7 @@
             }
         }
         const callType = localStorage.getItem("callType")
-        console.log("CALL TYPE ON LOAD:", localStorage.getItem("callType"))
+        console.log("Call type: ", callType) 
         let callTimeout
         const ringtone = document.getElementById("ringtone")
 
@@ -165,7 +165,6 @@
         let timerInterval
         let incomingCaller = null
         let callConnected = false
-        let isCallStarted = false
 
         /* ---------------- STREAM ---------------- */
 
@@ -287,14 +286,14 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator && callType === "caller") {
+                if (initiator) {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
                         type: "voice"
                     })
-                } else if (!initiator){
+                } else {
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
@@ -341,8 +340,6 @@
                 endCall()
             }, 60000)
 
-            if (isCallStarted) return
-            isCallStarted = true
             await initLocalStream()
 
             joinCallRoom()
@@ -372,7 +369,7 @@
             // if (!peers[user]) {
             //     createPeer(user, false)
             // }
-            if ( === "caller") {
+            if (callType === "caller") {
                 createPeer(user, true)
             }
         })
@@ -548,11 +545,11 @@
 
         /* ---------------- START FLOW ---------------- */
 
-        if ( === "caller") {
+        if (callType === "caller") {
             startCall()
         }
 
-        if ( === "receiver") {
+        if (callType === "receiver") {
             (async () => {
                 await initLocalStream()
                 joinCallRoom()
