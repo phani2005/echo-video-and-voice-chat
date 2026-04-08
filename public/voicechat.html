@@ -164,6 +164,7 @@
         let timerInterval
         let incomingCaller = null
         let callConnected = false
+        let isCallStarted = false
 
         /* ---------------- STREAM ---------------- */
 
@@ -285,14 +286,14 @@
 
                 console.log("📡 SIGNAL:", data.type)
 
-                if (initiator) {
+                if (initiator && callType === "caller") {
                     socket.emit("call-user", {
                         to: user,
                         from: loggedUser,
                         offer: data,
                         type: "voice"
                     })
-                } else {
+                } else if (!initiator){
                     socket.emit("answer-call", {
                         to: user,
                         answer: data
@@ -339,6 +340,8 @@
                 endCall()
             }, 60000)
 
+            if (isCallStarted) return
+            isCallStarted = true
             await initLocalStream()
 
             joinCallRoom()
