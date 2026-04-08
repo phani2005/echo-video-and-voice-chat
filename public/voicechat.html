@@ -281,6 +281,7 @@
             })
 
             peers[user] = peer
+            console.log("Call type in createPeer: ", callType)
 
             peer.on("signal", data => {
 
@@ -329,6 +330,8 @@
 
             startRinging() // 🔥 start ringtone
 
+            console.log("call type in startCall function: ", callType)
+
             // ⏳ auto cut after 60 sec
             callTimeout = setTimeout(() => {
                 socket.emit("call-timeout", {
@@ -360,6 +363,7 @@
             if (user === loggedUser) return
 
             console.log("👥 user joined:", user)
+            console.log("call type in user joined call: ",callType)
 
             await initLocalStream()
 
